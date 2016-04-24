@@ -35,6 +35,8 @@ pub struct ZopfliLZ77Store {
   d_counts: *mut size_t,
 }
 
+#[derive(Debug)]
+#[repr(C)]
 pub struct Lz77Store {
    litlens: Vec<c_ushort>,
    dists: Vec<c_ushort>,
@@ -132,30 +134,43 @@ pub extern fn lz77_store_lit_len_dist(ptr: *mut Lz77Store, length: c_ushort, dis
 }
 
 #[no_mangle]
-pub extern fn lz77_store_from_c(store: &mut ZopfliLZ77Store) -> *mut Lz77Store {
+pub extern fn lz77_store_from_c(store: *const ZopfliLZ77Store) -> *mut Lz77Store {
     Box::into_raw(Box::new(store.into()))
 }
 
-impl<'a> From<&'a mut ZopfliLZ77Store> for Lz77Store {
-    fn from(store: &'a mut ZopfliLZ77Store) -> Lz77Store {
+impl From<*const ZopfliLZ77Store> for Lz77Store {
+    fn from(ptr: *const ZopfliLZ77Store) -> Lz77Store {
+        let store = unsafe {
+            assert!(!ptr.is_null());
+            &*ptr
+        };
+
         let len = store.size as usize;
         let ll_len = (ZOPFLI_NUM_LL * (store.size / ZOPFLI_NUM_LL) + ZOPFLI_NUM_LL) as usize;
         let d_len = (ZOPFLI_NUM_D * (store.size / ZOPFLI_NUM_D) + ZOPFLI_NUM_D) as usize;
 
         unsafe {
             Lz77Store {
-                litlens: slice::from_raw_parts(store.litlens, len).to_vec(),
-                dists: slice::from_raw_parts(store.dists, len).to_vec(),
+                litlens: ptr_to_vec(store.litlens, len),
+                dists: ptr_to_vec(store.dists, len),
 
-                pos: slice::from_raw_parts(store.pos, len).to_vec(),
+                pos: ptr_to_vec(store.pos, len),
 
-                ll_symbol: slice::from_raw_parts(store.ll_symbol, len).to_vec(),
-                d_symbol: slice::from_raw_parts(store.d_symbol, len).to_vec(),
+                ll_symbol: ptr_to_vec(store.ll_symbol, len),
+                d_symbol: ptr_to_vec(store.d_symbol, len),
 
-                ll_counts: slice::from_raw_parts(store.ll_counts, ll_len).to_vec(),
-                d_counts: slice::from_raw_parts(store.d_counts, d_len).to_vec(),
+                ll_counts: ptr_to_vec(store.ll_counts, ll_len),
+                d_counts: ptr_to_vec(store.d_counts, d_len),
             }
         }
+    }
+}
+
+fn ptr_to_vec<T: Clone>(ptr: *mut T, length: usize) -> Vec<T> {
+    if ptr.is_null() {
+        vec![]
+    } else {
+        unsafe { slice::from_raw_parts(ptr, length).to_vec() }
     }
 }
 
