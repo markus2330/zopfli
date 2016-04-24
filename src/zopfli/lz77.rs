@@ -178,13 +178,6 @@ pub extern fn lz77_store_result(ptr: *mut Lz77Store, store: &mut ZopfliLZ77Store
     store.d_counts = lz77.d_counts.as_mut_ptr();
 }
 
-/// Appends the length and distance to the LZ77 arrays of the ZopfliLZ77Store.
-/// Context must be a ZopfliLZ77Store*.
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn ZopfliStoreLitLenDist(length: c_ushort, dist: c_ushort, pos: size_t, store: &mut ZopfliLZ77Store) {
-}
-
 // Returns symbol in range [257-285] (inclusive).
 const LENGTH_SYMBOL_TABLE: [c_ushort; 259] = [
     0, 0, 0,
