@@ -1,5 +1,8 @@
 use libc::{size_t, c_ushort, c_uchar};
 
+const ZOPFLI_NUM_LL: size_t = 288;
+const ZOPFLI_NUM_D: size_t = 32;
+
 // Comment from C:
 // Stores lit/length and dist pairs for LZ77.
 // Parameter litlens: Contains the literal symbols or length values.
@@ -36,6 +39,8 @@ pub struct ZopfliLZ77Store {
 #[allow(non_snake_case)]
 pub extern fn ZopfliStoreLitLenDist(length: c_ushort, dist: c_ushort, pos: size_t, store: &mut ZopfliLZ77Store) {
     let origsize = store.size;
+    let llstart = ZOPFLI_NUM_LL * (origsize / ZOPFLI_NUM_LL);
+    let dstart = ZOPFLI_NUM_D * (origsize / ZOPFLI_NUM_D);
   // size_t i;
   // /* Needed for using ZOPFLI_APPEND_DATA multiple times. */
   // size_t origsize = store->size;
