@@ -1,3 +1,5 @@
+use std::slice;
+
 use libc::{size_t, c_ushort, c_uchar};
 
 const ZOPFLI_NUM_LL: size_t = 288;
@@ -127,6 +129,53 @@ pub extern fn lz77_store_lit_len_dist(ptr: *mut Lz77Store, length: c_ushort, dis
         &mut *ptr
     };
     store.lit_len_dist(length, dist, pos);
+}
+
+#[no_mangle]
+pub extern fn lz77_store_from_c(store: &mut ZopfliLZ77Store) -> *mut Lz77Store {
+    Box::into_raw(Box::new(store.into()))
+}
+
+impl<'a> From<&'a mut ZopfliLZ77Store> for Lz77Store {
+    fn from(store: &'a mut ZopfliLZ77Store) -> Lz77Store {
+        let len = store.size as usize;
+        let ll_len = (ZOPFLI_NUM_LL * (store.size / ZOPFLI_NUM_LL) + ZOPFLI_NUM_LL) as usize;
+        let d_len = (ZOPFLI_NUM_D * (store.size / ZOPFLI_NUM_D) + ZOPFLI_NUM_D) as usize;
+
+        unsafe {
+            Lz77Store {
+                litlens: slice::from_raw_parts(store.litlens, len).to_vec(),
+                dists: slice::from_raw_parts(store.dists, len).to_vec(),
+
+                pos: slice::from_raw_parts(store.pos, len).to_vec(),
+
+                ll_symbol: slice::from_raw_parts(store.ll_symbol, len).to_vec(),
+                d_symbol: slice::from_raw_parts(store.d_symbol, len).to_vec(),
+
+                ll_counts: slice::from_raw_parts(store.ll_counts, ll_len).to_vec(),
+                d_counts: slice::from_raw_parts(store.d_counts, d_len).to_vec(),
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub extern fn lz77_store_result(ptr: *mut Lz77Store, store: &mut ZopfliLZ77Store) {
+    let lz77 = unsafe {
+        assert!(!ptr.is_null());
+        &mut *ptr
+    };
+
+    let len = lz77.litlens.len();
+
+    store.litlens = lz77.litlens.as_mut_ptr();
+    store.dists = lz77.dists.as_mut_ptr();
+    store.size = len;
+    store.pos = lz77.pos.as_mut_ptr();
+    store.ll_symbol = lz77.ll_symbol.as_mut_ptr();
+    store.d_symbol = lz77.d_symbol.as_mut_ptr();
+    store.ll_counts = lz77.ll_counts.as_mut_ptr();
+    store.d_counts = lz77.d_counts.as_mut_ptr();
 }
 
 /// Appends the length and distance to the LZ77 arrays of the ZopfliLZ77Store.
