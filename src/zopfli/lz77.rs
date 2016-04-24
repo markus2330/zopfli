@@ -33,61 +33,177 @@ pub struct ZopfliLZ77Store {
   d_counts: *mut size_t,
 }
 
+pub struct Lz77Store {
+   litlens: Vec<c_ushort>,
+   dists: Vec<c_ushort>,
+
+   pos: Vec<size_t>,
+
+   ll_symbol: Vec<c_ushort>,
+   d_symbol: Vec<c_ushort>,
+
+   ll_counts: Vec<size_t>,
+   d_counts: Vec<size_t>,
+}
+
+impl Lz77Store {
+    pub fn new() -> Lz77Store {
+        Lz77Store {
+          litlens: vec![],
+          dists: vec![],
+
+          pos: vec![],
+
+          ll_symbol: vec![],
+          d_symbol: vec![],
+
+          ll_counts: vec![],
+          d_counts: vec![],
+       }
+    }
+
+    pub fn lit_len_dist(&mut self, length: c_ushort, dist: c_ushort, pos: size_t) {
+        let origsize = self.litlens.len();
+        let llstart = ZOPFLI_NUM_LL * (origsize / ZOPFLI_NUM_LL);
+        let dstart = ZOPFLI_NUM_D * (origsize / ZOPFLI_NUM_D);
+
+        if origsize % ZOPFLI_NUM_LL == 0 {
+            let llsize = origsize;
+            for i in 0..ZOPFLI_NUM_LL {
+                if origsize == 0 {
+                    self.ll_counts[llsize + i] = 0;
+                } else {
+                    self.ll_counts[llsize + i] = self.ll_counts[origsize - ZOPFLI_NUM_LL + i];
+                }
+            }
+        }
+
+        if origsize % ZOPFLI_NUM_D == 0 {
+            let dsize = origsize;
+            for i in 0..ZOPFLI_NUM_D {
+                if origsize == 0 {
+                    self.d_counts[dsize + i] = 0;
+                } else {
+                    self.d_counts[origsize - ZOPFLI_NUM_D + i];
+                }
+            }
+        }
+
+        self.litlens.push(length);
+        self.dists.push(dist);
+        self.pos.push(pos);
+
+        // Why isn't this at the beginning of this function?
+        // assert(length < 259);
+
+        if dist == 0 {
+            self.ll_symbol.push(length);
+            self.d_symbol.push(0);
+            self.ll_counts[llstart + length as usize] += 1;
+        } else {
+            self.ll_symbol.push(length_symbol(length));
+            self.d_symbol.push(dist_symbol(dist));
+            self.ll_counts[llstart + length_symbol(length) as usize] += 1;
+            self.d_counts[dstart + dist_symbol(dist) as usize] += 1;
+        }
+    }
+}
+
+#[no_mangle]
+pub extern fn lz77_store_new() -> *mut Lz77Store {
+    Box::into_raw(Box::new(Lz77Store::new()))
+}
+
+#[no_mangle]
+pub extern fn lz77_store_free(ptr: *mut Lz77Store) {
+    if ptr.is_null() { return }
+    unsafe { Box::from_raw(ptr); }
+}
+
+#[no_mangle]
+pub extern fn lz77_store_lit_len_dist(ptr: *mut Lz77Store, length: c_ushort, dist: c_ushort, pos: size_t) {
+    let store = unsafe {
+        assert!(!ptr.is_null());
+        &mut *ptr
+    };
+    store.lit_len_dist(length, dist, pos);
+}
+
 /// Appends the length and distance to the LZ77 arrays of the ZopfliLZ77Store.
 /// Context must be a ZopfliLZ77Store*.
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern fn ZopfliStoreLitLenDist(length: c_ushort, dist: c_ushort, pos: size_t, store: &mut ZopfliLZ77Store) {
-    let origsize = store.size;
-    let llstart = ZOPFLI_NUM_LL * (origsize / ZOPFLI_NUM_LL);
-    let dstart = ZOPFLI_NUM_D * (origsize / ZOPFLI_NUM_D);
-  // size_t i;
-  // /* Needed for using ZOPFLI_APPEND_DATA multiple times. */
-  // size_t origsize = store->size;
-  // size_t llstart = ZOPFLI_NUM_LL * (origsize / ZOPFLI_NUM_LL);
-  // size_t dstart = ZOPFLI_NUM_D * (origsize / ZOPFLI_NUM_D);
-  //
-  // /* Everytime the index wraps around, a new cumulative histogram is made: we're
-  // keeping one histogram value per LZ77 symbol rather than a full histogram for
-  // each to save memory. */
-  // if (origsize % ZOPFLI_NUM_LL == 0) {
-  //   size_t llsize = origsize;
-  //   for (i = 0; i < ZOPFLI_NUM_LL; i++) {
-  //     ZOPFLI_APPEND_DATA(
-  //         origsize == 0 ? 0 : store->ll_counts[origsize - ZOPFLI_NUM_LL + i],
-  //         &store->ll_counts, &llsize);
-  //   }
-  // }
-  // if (origsize % ZOPFLI_NUM_D == 0) {
-  //   size_t dsize = origsize;
-  //   for (i = 0; i < ZOPFLI_NUM_D; i++) {
-  //     ZOPFLI_APPEND_DATA(
-  //         origsize == 0 ? 0 : store->d_counts[origsize - ZOPFLI_NUM_D + i],
-  //         &store->d_counts, &dsize);
-  //   }
-  // }
-  //
-  // ZOPFLI_APPEND_DATA(length, &store->litlens, &store->size);
-  // store->size = origsize;
-  // ZOPFLI_APPEND_DATA(dist, &store->dists, &store->size);
-  // store->size = origsize;
-  // ZOPFLI_APPEND_DATA(pos, &store->pos, &store->size);
-  // assert(length < 259);
-  //
-  // if (dist == 0) {
-  //   store->size = origsize;
-  //   ZOPFLI_APPEND_DATA(length, &store->ll_symbol, &store->size);
-  //   store->size = origsize;
-  //   ZOPFLI_APPEND_DATA(0, &store->d_symbol, &store->size);
-  //   store->ll_counts[llstart + length]++;
-  // } else {
-  //   store->size = origsize;
-  //   ZOPFLI_APPEND_DATA(ZopfliGetLengthSymbol(length),
-  //                      &store->ll_symbol, &store->size);
-  //   store->size = origsize;
-  //   ZOPFLI_APPEND_DATA(ZopfliGetDistSymbol(dist),
-  //                      &store->d_symbol, &store->size);
-  //   store->ll_counts[llstart + ZopfliGetLengthSymbol(length)]++;
-  //   store->d_counts[dstart + ZopfliGetDistSymbol(dist)]++;
-  // }
+}
+
+// Returns symbol in range [257-285] (inclusive).
+const LENGTH_SYMBOL_TABLE: [c_ushort; 259] = [
+    0, 0, 0,
+    257, 258, 259, 260, 261, 262, 263, 264,
+    265, 265, 266, 266, 267, 267, 268, 268,
+    269, 269, 269, 269, 270, 270, 270, 270,
+    271, 271, 271, 271, 272, 272, 272, 272,
+    273, 273, 273, 273, 273, 273, 273, 273,
+    274, 274, 274, 274, 274, 274, 274, 274,
+    275, 275, 275, 275, 275, 275, 275, 275,
+    276, 276, 276, 276, 276, 276, 276, 276,
+    277, 277, 277, 277, 277, 277, 277, 277,
+    277, 277, 277, 277, 277, 277, 277, 277,
+    278, 278, 278, 278, 278, 278, 278, 278,
+    278, 278, 278, 278, 278, 278, 278, 278,
+    279, 279, 279, 279, 279, 279, 279, 279,
+    279, 279, 279, 279, 279, 279, 279, 279,
+    280, 280, 280, 280, 280, 280, 280, 280,
+    280, 280, 280, 280, 280, 280, 280, 280,
+    281, 281, 281, 281, 281, 281, 281, 281,
+    281, 281, 281, 281, 281, 281, 281, 281,
+    281, 281, 281, 281, 281, 281, 281, 281,
+    281, 281, 281, 281, 281, 281, 281, 281,
+    282, 282, 282, 282, 282, 282, 282, 282,
+    282, 282, 282, 282, 282, 282, 282, 282,
+    282, 282, 282, 282, 282, 282, 282, 282,
+    282, 282, 282, 282, 282, 282, 282, 282,
+    283, 283, 283, 283, 283, 283, 283, 283,
+    283, 283, 283, 283, 283, 283, 283, 283,
+    283, 283, 283, 283, 283, 283, 283, 283,
+    283, 283, 283, 283, 283, 283, 283, 283,
+    284, 284, 284, 284, 284, 284, 284, 284,
+    284, 284, 284, 284, 284, 284, 284, 284,
+    284, 284, 284, 284, 284, 284, 284, 284,
+    284, 284, 284, 284, 284, 284, 284, 285,
+];
+fn length_symbol(length: c_ushort) -> c_ushort {
+    LENGTH_SYMBOL_TABLE[length as usize]
+}
+
+fn dist_symbol(dist: c_ushort) -> c_ushort {
+    match dist {
+        0...4 => dist - 1,
+        5...6 => 4,
+        7...8 => 5,
+        9...12 => 6,
+        13...16 => 7,
+        17...24 => 8,
+        25...32 => 9,
+        33...48 => 10,
+        49...64 => 11,
+        65...96 => 12,
+        97...128 => 13,
+        129...192 => 14,
+        193...256 => 15,
+        257...384 => 16,
+        385...512 => 17,
+        513...768 => 18,
+        769...1024 => 19,
+        1025...1536 => 20,
+        1537...2048 => 21,
+        2049...3072 => 22,
+        3073...4096 => 23,
+        4097...6144 => 24,
+        6145...8192 => 25,
+        8193...12288 => 26,
+        12289...16384 => 27,
+        16385...24576 => 28,
+        _ => 29,
+    }
 }
