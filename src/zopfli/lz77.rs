@@ -106,9 +106,9 @@ impl Lz77Store {
             self.ll_counts[llstart + length as usize] += 1;
         } else {
             self.ll_symbol.push(ZopfliGetLengthSymbol(length as c_int) as c_ushort);
-            self.d_symbol.push(dist_symbol(dist));
+            self.d_symbol.push(ZopfliGetDistSymbol(dist as c_int) as c_ushort);
             self.ll_counts[llstart + ZopfliGetLengthSymbol(length as c_int) as usize] += 1;
-            self.d_counts[dstart + dist_symbol(dist) as usize] += 1;
+            self.d_counts[dstart + ZopfliGetDistSymbol(dist as c_int) as usize] += 1;
         }
     }
 }
@@ -234,7 +234,9 @@ pub extern fn ZopfliGetLengthSymbol(length: c_int) -> c_int {
     LENGTH_SYMBOL_TABLE[length as usize]
 }
 
-fn dist_symbol(dist: c_ushort) -> c_ushort {
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern fn ZopfliGetDistSymbol(dist: c_int) -> c_int {
     match dist {
         0...4 => dist - 1,
         5...6 => 4,
