@@ -1,6 +1,6 @@
 use std::slice;
 
-use libc::{size_t, c_ushort, c_uchar};
+use libc::{size_t, c_ushort, c_uchar, c_int};
 
 const ZOPFLI_NUM_LL: size_t = 288;
 const ZOPFLI_NUM_D: size_t = 32;
@@ -105,9 +105,9 @@ impl Lz77Store {
             self.d_symbol.push(0);
             self.ll_counts[llstart + length as usize] += 1;
         } else {
-            self.ll_symbol.push(length_symbol(length));
+            self.ll_symbol.push(ZopfliGetLengthSymbol(length as c_int) as c_ushort);
             self.d_symbol.push(dist_symbol(dist));
-            self.ll_counts[llstart + length_symbol(length) as usize] += 1;
+            self.ll_counts[llstart + ZopfliGetLengthSymbol(length as c_int) as usize] += 1;
             self.d_counts[dstart + dist_symbol(dist) as usize] += 1;
         }
     }
@@ -191,8 +191,7 @@ pub extern fn lz77_store_result(ptr: *mut Lz77Store, store: &mut ZopfliLZ77Store
     store.d_counts = lz77.d_counts.as_mut_ptr();
 }
 
-// Returns symbol in range [257-285] (inclusive).
-const LENGTH_SYMBOL_TABLE: [c_ushort; 259] = [
+const LENGTH_SYMBOL_TABLE: [c_int; 259] = [
     0, 0, 0,
     257, 258, 259, 260, 261, 262, 263, 264,
     265, 265, 266, 266, 267, 267, 268, 268,
@@ -227,7 +226,11 @@ const LENGTH_SYMBOL_TABLE: [c_ushort; 259] = [
     284, 284, 284, 284, 284, 284, 284, 284,
     284, 284, 284, 284, 284, 284, 284, 285,
 ];
-fn length_symbol(length: c_ushort) -> c_ushort {
+
+#[no_mangle]
+#[allow(non_snake_case)]
+/// Returns symbol in range [257-285] (inclusive).
+pub extern fn ZopfliGetLengthSymbol(length: c_int) -> c_int {
     LENGTH_SYMBOL_TABLE[length as usize]
 }
 
