@@ -28,53 +28,10 @@ Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
 #include "tree.h"
 #include "util.h"
 
-typedef struct SymbolStats {
-  /* The literal and length symbols. */
-  size_t litlens[ZOPFLI_NUM_LL];
-  /* The 32 unique dist symbols, not the 32768 possible dists. */
-  size_t dists[ZOPFLI_NUM_D];
-
-  /* Length of each lit/len symbol in bits. */
-  double ll_symbols[ZOPFLI_NUM_LL];
-  /* Length of each dist symbol in bits. */
-  double d_symbols[ZOPFLI_NUM_D];
-} SymbolStats;
-
-/* Sets everything to 0. */
-static void InitStats(SymbolStats* stats) {
-  memset(stats->litlens, 0, ZOPFLI_NUM_LL * sizeof(stats->litlens[0]));
-  memset(stats->dists, 0, ZOPFLI_NUM_D * sizeof(stats->dists[0]));
-
-  memset(stats->ll_symbols, 0, ZOPFLI_NUM_LL * sizeof(stats->ll_symbols[0]));
-  memset(stats->d_symbols, 0, ZOPFLI_NUM_D * sizeof(stats->d_symbols[0]));
-}
-
-static void CopyStats(SymbolStats* source, SymbolStats* dest) {
-  memcpy(dest->litlens, source->litlens,
-         ZOPFLI_NUM_LL * sizeof(dest->litlens[0]));
-  memcpy(dest->dists, source->dists, ZOPFLI_NUM_D * sizeof(dest->dists[0]));
-
-  memcpy(dest->ll_symbols, source->ll_symbols,
-         ZOPFLI_NUM_LL * sizeof(dest->ll_symbols[0]));
-  memcpy(dest->d_symbols, source->d_symbols,
-         ZOPFLI_NUM_D * sizeof(dest->d_symbols[0]));
-}
-
-/* Adds the bit lengths. */
-static void AddWeighedStatFreqs(const SymbolStats* stats1, double w1,
-                                const SymbolStats* stats2, double w2,
-                                SymbolStats* result) {
-  size_t i;
-  for (i = 0; i < ZOPFLI_NUM_LL; i++) {
-    result->litlens[i] =
-        (size_t) (stats1->litlens[i] * w1 + stats2->litlens[i] * w2);
-  }
-  for (i = 0; i < ZOPFLI_NUM_D; i++) {
-    result->dists[i] =
-        (size_t) (stats1->dists[i] * w1 + stats2->dists[i] * w2);
-  }
-  result->litlens[256] = 1;  /* End symbol. */
-}
+typedef struct symbol_stats_S symbol_stats_t;
+extern symbol_stats_t * symbol_stats_new(void);
+extern void copy_stats(symbol_stats_t * source, symbol_stats_t * dest);
+extern void add_weighed_stat_freqs(symbol_stats_t * stats1, double w1, symbol_stats_t * stats2, double w2, symbol_stats_t * result);
 
 typedef struct RanState {
   unsigned int m_w, m_z;
@@ -440,7 +397,7 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
   unsigned short* path = 0;
   size_t pathsize = 0;
   ZopfliLZ77Store currentstore;
-  SymbolStats stats, beststats, laststats;
+  symbol_stats_t *stats, *beststats, *laststats;
   int i;
   double cost;
   double bestcost = ZOPFLI_LARGE_FLOAT;
@@ -452,7 +409,7 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
   if (!length_array) exit(-1); /* Allocation failed. */
 
   InitRanState(&ran_state);
-  InitStats(&stats);
+  stats = symbol_stats_new();
   ZopfliInitLZ77Store(in, &currentstore);
 
   /* Do regular deflate, then loop multiple shortest path runs, each time using
@@ -477,21 +434,21 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
     if (cost < bestcost) {
       /* Copy to the output store. */
       ZopfliCopyLZ77Store(&currentstore, store);
-      CopyStats(&stats, &beststats);
+      copy_stats(stats, beststats);
       bestcost = cost;
     }
-    CopyStats(&stats, &laststats);
+    copy_stats(stats, laststats);
     ClearStatFreqs(&stats);
     GetStatistics(&currentstore, &stats);
     if (lastrandomstep != -1) {
       /* This makes it converge slower but better. Do it only once the
       randomness kicks in so that if the user does few iterations, it gives a
       better result sooner. */
-      AddWeighedStatFreqs(&stats, 1.0, &laststats, 0.5, &stats);
+      add_weighed_stat_freqs(stats, 1.0, laststats, 0.5, stats);
       CalculateStatistics(&stats);
     }
     if (i > 5 && cost == lastcost) {
-      CopyStats(&beststats, &stats);
+      copy_stats(beststats, stats);
       RandomizeStatFreqs(&ran_state, &stats);
       CalculateStatistics(&stats);
       lastrandomstep = i;
