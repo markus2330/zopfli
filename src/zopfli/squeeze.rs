@@ -27,11 +27,11 @@ impl SymbolStats {
     }
 
     pub fn add_weighed_stat_freqs(&mut self, self_weight: c_double, other: &SymbolStats, other_weight: c_double) {
-        for i in 0..ZOPFLI_NUM_LL {
-            self.litlens[i] = (self.litlens[i] as c_double * self_weight + other.litlens[i] as c_double * other_weight) as size_t;
+        for (x, other_x) in self.litlens.iter_mut().zip(other.litlens.iter()) {
+            *x = (*x as c_double * self_weight + *other_x as c_double * other_weight) as size_t;
         }
-        for i in 0..ZOPFLI_NUM_D {
-            self.dists[i] = (self.dists[i] as c_double * self_weight + other.dists[i] as c_double * other_weight) as size_t;
+        for (x, other_x) in self.dists.iter_mut().zip(other.dists.iter()) {
+            *x = (*x as c_double * self_weight + *other_x as c_double * other_weight) as size_t;
         }
         self.litlens[256] = 1; // End symbol.
     }
