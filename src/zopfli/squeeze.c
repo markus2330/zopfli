@@ -31,7 +31,7 @@ Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
 typedef struct symbol_stats_S symbol_stats_t;
 extern symbol_stats_t * symbol_stats_new(void);
 extern void copy_stats(symbol_stats_t * source, symbol_stats_t * dest);
-extern void add_weighed_stat_freqs(symbol_stats_t * stats1, double w1, symbol_stats_t * stats2, double w2, symbol_stats_t * result);
+extern void add_weighed_stat_freqs(symbol_stats_t * stats1, double w1, symbol_stats_t * stats2, double w2);
 
 typedef struct RanState {
   unsigned int m_w, m_z;
@@ -444,7 +444,7 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
       /* This makes it converge slower but better. Do it only once the
       randomness kicks in so that if the user does few iterations, it gives a
       better result sooner. */
-      add_weighed_stat_freqs(stats, 1.0, laststats, 0.5, stats);
+      add_weighed_stat_freqs(stats, 1.0, laststats, 0.5);
       CalculateStatistics(&stats);
     }
     if (i > 5 && cost == lastcost) {

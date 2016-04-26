@@ -25,6 +25,16 @@ impl SymbolStats {
             d_symbols: [0.0; ZOPFLI_NUM_D],
         }
     }
+
+    pub fn add_weighed_stat_freqs(&mut self, self_weight: c_double, other: &SymbolStats, other_weight: c_double) {
+        for i in 0..ZOPFLI_NUM_LL {
+            self.litlens[i] = (self.litlens[i] as c_double * self_weight + other.litlens[i] as c_double * other_weight) as size_t;
+        }
+        for i in 0..ZOPFLI_NUM_D {
+            self.dists[i] = (self.dists[i] as c_double * self_weight + other.dists[i] as c_double * other_weight) as size_t;
+        }
+        self.litlens[256] = 1; // End symbol.
+    }
 }
 
 impl Clone for SymbolStats {
@@ -53,7 +63,7 @@ pub extern fn copy_stats(source_ptr: *mut SymbolStats, dest_ptr: *mut SymbolStat
 
 /// Adds the bit lengths.
 #[no_mangle]
-pub extern fn add_weighed_stat_freqs(stats1_ptr: *mut SymbolStats, w1: c_double, stats2_ptr: *mut SymbolStats, w2: c_double, result_ptr: *mut SymbolStats) {
+pub extern fn add_weighed_stat_freqs(stats1_ptr: *mut SymbolStats, w1: c_double, stats2_ptr: *mut SymbolStats, w2: c_double) {
     let stats1 = unsafe {
         assert!(!stats1_ptr.is_null());
         &mut *stats1_ptr
@@ -62,18 +72,8 @@ pub extern fn add_weighed_stat_freqs(stats1_ptr: *mut SymbolStats, w1: c_double,
         assert!(!stats2_ptr.is_null());
         &mut *stats2_ptr
     };
-    let result = unsafe {
-        assert!(!result_ptr.is_null());
-        &mut *result_ptr
-    };
 
-    for i in 0..ZOPFLI_NUM_LL {
-        result.litlens[i] = (stats1.litlens[i] as c_double * w1 + stats2.litlens[i] as c_double * w2) as size_t;
-    }
-    for i in 0..ZOPFLI_NUM_D {
-        result.dists[i] = (stats1.dists[i] as c_double * w1 + stats2.dists[i] as c_double * w2) as size_t;
-    }
-    result.litlens[256] = 1; // End symbol.
+    stats1.add_weighed_stat_freqs(w1, stats2, w2);
 }
 
 #[no_mangle]
