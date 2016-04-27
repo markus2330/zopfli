@@ -80,7 +80,6 @@ typedef struct RanState {
   unsigned int m_w, m_z;
 } RanState;
 
-extern unsigned int Ran(RanState* state);
 extern void InitRanState(RanState* state);
 extern void RandomizeStatFreqs(RanState* state, SymbolStats* stats);
 
