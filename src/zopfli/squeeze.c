@@ -25,6 +25,7 @@ Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
 
 #include "blocksplitter.h"
 #include "deflate.h"
+#include "hash.h"
 #include "symbols.h"
 #include "tree.h"
 #include "util.h"
@@ -333,8 +334,7 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
   unsigned short* path = 0;
   size_t pathsize = 0;
   ZopfliLZ77Store currentstore;
-  ZopfliHash hash;
-  ZopfliHash* h = &hash;
+  ZopfliHash* h = ZopfliAllocHash(ZOPFLI_WINDOW_SIZE);
   SymbolStats *stats, *beststats, *laststats;
   int i;
   float* costs = (float*)malloc(sizeof(float) * (blocksize + 1));
@@ -353,7 +353,6 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
   beststats = symbol_stats_new();
   laststats = symbol_stats_new();
   ZopfliInitLZ77Store(in, &currentstore);
-  ZopfliAllocHash(ZOPFLI_WINDOW_SIZE, h);
 
   /* Do regular deflate, then loop multiple shortest path runs, each time using
   the statistics of the previous run. */
@@ -417,14 +416,11 @@ void ZopfliLZ77OptimalFixed(ZopfliBlockState *s,
       (unsigned short*)malloc(sizeof(unsigned short) * (blocksize + 1));
   unsigned short* path = 0;
   size_t pathsize = 0;
-  ZopfliHash hash;
-  ZopfliHash* h = &hash;
+  ZopfliHash* h =  ZopfliAllocHash(ZOPFLI_WINDOW_SIZE);
   float* costs = (float*)malloc(sizeof(float) * (blocksize + 1));
 
   if (!costs) exit(-1); /* Allocation failed. */
   if (!length_array) exit(-1); /* Allocation failed. */
-
-  ZopfliAllocHash(ZOPFLI_WINDOW_SIZE, h);
 
   s->blockstart = instart;
   s->blockend = inend;

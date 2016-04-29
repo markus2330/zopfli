@@ -24,6 +24,7 @@ Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
 #include <stdlib.h>
 
 #include "deflate.h"
+#include "hash.h"
 #include "squeeze.h"
 #include "tree.h"
 #include "util.h"
@@ -281,12 +282,10 @@ void ZopfliBlockSplit(const ZopfliOptions* options,
   size_t* lz77splitpoints = 0;
   size_t nlz77points = 0;
   ZopfliLZ77Store store;
-  ZopfliHash hash;
-  ZopfliHash* h = &hash;
+  ZopfliHash* h = ZopfliAllocHash(ZOPFLI_WINDOW_SIZE);
 
   ZopfliInitLZ77Store(in, &store);
   ZopfliInitBlockState(options, instart, inend, 0, &s);
-  ZopfliAllocHash(ZOPFLI_WINDOW_SIZE, h);
 
   *npoints = 0;
   *splitpoints = 0;
