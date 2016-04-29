@@ -570,8 +570,7 @@ void ZopfliLZ77Greedy(ZopfliBlockState* s, const unsigned char* in,
       ? instart - ZOPFLI_WINDOW_SIZE : 0;
   unsigned short dummysublen[259];
 
-  ZopfliHash hash;
-  ZopfliHash* h = &hash;
+  ZopfliHash* h;
 
 #ifdef ZOPFLI_LAZY_MATCHING
   /* Lazy matching. */
@@ -583,7 +582,7 @@ void ZopfliLZ77Greedy(ZopfliBlockState* s, const unsigned char* in,
 
   if (instart == inend) return;
 
-  ZopfliInitHash(ZOPFLI_WINDOW_SIZE, h);
+  h = ZopfliInitHash(ZOPFLI_WINDOW_SIZE);
   ZopfliWarmupHash(in, windowstart, inend, h);
   for (i = windowstart; i < instart; i++) {
     ZopfliUpdateHash(in, i, inend, h);

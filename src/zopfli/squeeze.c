@@ -121,8 +121,7 @@ static double GetBestLengths(ZopfliBlockState *s,
   unsigned short sublen[259];
   size_t windowstart = instart > ZOPFLI_WINDOW_SIZE
       ? instart - ZOPFLI_WINDOW_SIZE : 0;
-  ZopfliHash hash;
-  ZopfliHash* h = &hash;
+  ZopfliHash* h;
   unsigned short* hsame;
   double result;
   double mincost = GetCostModelMinCost(costmodel, costcontext);
@@ -132,7 +131,7 @@ static double GetBestLengths(ZopfliBlockState *s,
   costs = (float*)malloc(sizeof(float) * (blocksize + 1));
   if (!costs) exit(-1); /* Allocation failed. */
 
-  ZopfliInitHash(ZOPFLI_WINDOW_SIZE, h);
+  h = ZopfliInitHash(ZOPFLI_WINDOW_SIZE);
   ZopfliWarmupHash(in, windowstart, inend, h);
   for (i = windowstart; i < instart; i++) {
     ZopfliUpdateHash(in, i, inend, h);
@@ -243,12 +242,11 @@ static void FollowPath(ZopfliBlockState* s,
 
   size_t total_length_test = 0;
 
-  ZopfliHash hash;
-  ZopfliHash* h = &hash;
+  ZopfliHash* h;
 
   if (instart == inend) return;
 
-  ZopfliInitHash(ZOPFLI_WINDOW_SIZE, h);
+  h = ZopfliInitHash(ZOPFLI_WINDOW_SIZE);
   ZopfliWarmupHash(in, windowstart, inend, h);
   for (i = windowstart; i < instart; i++) {
     ZopfliUpdateHash(in, i, inend, h);
