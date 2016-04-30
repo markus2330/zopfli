@@ -4,7 +4,7 @@ CXX = g++
 CFLAGS = -W -Wall -Wextra -ansi -pedantic -lm -O2
 CXXFLAGS = -W -Wall -Wextra -ansi -pedantic -O2
 
-ZOPFLILIB_SRC = target/release/libzopfli.a src/zopfli/blocksplitter.c src/zopfli/cache.c\
+ZOPFLILIB_SRC = target/debug/libzopfli.a src/zopfli/blocksplitter.c src/zopfli/cache.c\
                 src/zopfli/deflate.c src/zopfli/gzip_container.c\
                 src/zopfli/hash.c src/zopfli/katajainen.c\
                 src/zopfli/lz77.c src/zopfli/squeeze.c\
@@ -18,9 +18,9 @@ ZOPFLIPNGBIN_SRC := src/zopflipng/zopflipng_bin.cc
 
 .PHONY: zopfli zopflipng
 
-.PHONY: target/release/libzopfli.a
-target/release/libzopfli.a:
-	cargo build --verbose --release
+.PHONY: target/debug/libzopfli.a
+target/debug/libzopfli.a:
+	cargo build --verbose
 
 # Zopfli binary
 zopfli:
