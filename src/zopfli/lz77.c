@@ -227,7 +227,6 @@ void ZopfliCleanBlockState(ZopfliBlockState* s) {
 #ifdef ZOPFLI_LONGEST_MATCH_CACHE
   if (s->lmc) {
     ZopfliCleanCache(s->lmc);
-    free(s->lmc);
   }
 #endif
 }
