@@ -92,7 +92,7 @@ static double GetCostModelMinCost(CostModelFun* costmodel, void* costcontext) {
   return costmodel(bestlength, bestdist, costcontext);
 }
 
-extern unsigned short* ZopfliHashSame(const ZopfliHash* h);
+extern unsigned short ZopfliHashSameAt(const ZopfliHash* h, size_t index);
 
 /*
 Performs the forward pass for "squeeze". Gets the most optimal length to reach
@@ -123,7 +123,6 @@ static double GetBestLengths(ZopfliBlockState *s,
   size_t windowstart = instart > ZOPFLI_WINDOW_SIZE
       ? instart - ZOPFLI_WINDOW_SIZE : 0;
   ZopfliHash* h;
-  unsigned short* hsame;
   double result;
   double mincost = GetCostModelMinCost(costmodel, costcontext);
 
@@ -145,14 +144,13 @@ static double GetBestLengths(ZopfliBlockState *s,
   for (i = instart; i < inend; i++) {
     size_t j = i - instart;  /* Index in the costs array and length_array. */
     ZopfliUpdateHash(in, i, inend, h);
-    hsame = ZopfliHashSame(h);
 
     /* If we're in a long repetition of the same character and have more than
     ZOPFLI_MAX_MATCH characters before and after our position. */
-    if (hsame[i & ZOPFLI_WINDOW_MASK] > ZOPFLI_MAX_MATCH * 2
+    if (ZopfliHashSameAt(h, i & ZOPFLI_WINDOW_MASK) > ZOPFLI_MAX_MATCH * 2
         && i > instart + ZOPFLI_MAX_MATCH + 1
         && i + ZOPFLI_MAX_MATCH * 2 + 1 < inend
-        && hsame[(i - ZOPFLI_MAX_MATCH) & ZOPFLI_WINDOW_MASK]
+        && ZopfliHashSameAt(h, (i - ZOPFLI_MAX_MATCH) & ZOPFLI_WINDOW_MASK)
             > ZOPFLI_MAX_MATCH) {
       double symbolcost = costmodel(ZOPFLI_MAX_MATCH, 1, costcontext);
       /* Set the length to reach each one to ZOPFLI_MAX_MATCH, and the cost to
