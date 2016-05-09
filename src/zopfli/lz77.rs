@@ -3,7 +3,7 @@ use std::{slice, ptr, cmp};
 use libc::{size_t, c_ushort, c_uchar, c_int, c_uint};
 
 use cache::{ZopfliLongestMatchCache};
-use hash::{ZopfliHash, ZopfliHashSameAt, ZopfliUpdateHash};
+use hash::{ZopfliHash, ZopfliHashSameAt};
 use util::{ZopfliGetLengthSymbol, ZopfliGetDistSymbol, ZOPFLI_NUM_LL, ZOPFLI_NUM_D, ZOPFLI_MAX_MATCH, ZOPFLI_MIN_MATCH, ZOPFLI_WINDOW_MASK, ZOPFLI_MAX_CHAIN_HITS, ZOPFLI_WINDOW_SIZE};
 use zopfli::ZopfliOptions;
 
@@ -719,7 +719,7 @@ pub extern fn ZopfliLZ77Greedy(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uch
 
     let mut i = instart;
     while i < inend {
-        ZopfliUpdateHash(in_data, i, inend, &mut h);
+        h.update(arr, i);
 
         longest_match = ZopfliFindLongestMatch(s, &mut h, in_data, i, inend, ZOPFLI_MAX_MATCH, ptr::null_mut());
         dist = longest_match.distance;
@@ -749,7 +749,7 @@ pub extern fn ZopfliLZ77Greedy(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uch
                 for _ in 2..leng {
                     assert!(i < inend);
                     i += 1;
-                    ZopfliUpdateHash(in_data, i, inend, &mut h);
+                    h.update(arr, i);
                  }
                  i += 1;
                  continue;
@@ -774,7 +774,7 @@ pub extern fn ZopfliLZ77Greedy(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uch
         for _ in 1..leng {
             assert!(i < inend);
             i += 1;
-            ZopfliUpdateHash(in_data, i, inend, &mut h);
+            h.update(arr, i);
         }
         i += 1;
     }
