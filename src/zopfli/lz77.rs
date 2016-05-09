@@ -743,7 +743,6 @@ pub extern fn ZopfliLZ77Greedy(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uch
                 /* Add previous to output. */
                 leng = prev_length as c_ushort;
                 dist = prev_match as c_ushort;
-                lengthscore = prevlengthscore;
                 /* Add to output. */
                 ZopfliVerifyLenDist(in_data, inend, i - 1, dist, leng);
                 lz77_store_lit_len_dist(rust_store, leng, dist, i - 1);
