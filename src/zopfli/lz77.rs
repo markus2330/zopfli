@@ -747,7 +747,7 @@ pub extern fn ZopfliLZ77Greedy(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uch
                 /* Add to output. */
                 ZopfliVerifyLenDist(in_data, inend, i - 1, dist, leng);
                 lz77_store_lit_len_dist(rust_store, leng, dist, i - 1);
-                for j in 2..leng {
+                for _ in 2..leng {
                     assert!(i < inend);
                     i += 1;
                     ZopfliUpdateHash(in_data, i, inend, &mut h);
@@ -772,7 +772,7 @@ pub extern fn ZopfliLZ77Greedy(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uch
             leng = 1;
             lz77_store_lit_len_dist(rust_store, unsafe { *in_data.offset(i as isize) as c_ushort }, 0, i);
         }
-        for j in 1..leng {
+        for _ in 1..leng {
             assert!(i < inend);
             i += 1;
             ZopfliUpdateHash(in_data, i, inend, &mut h);
