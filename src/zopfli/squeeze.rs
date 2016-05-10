@@ -1,7 +1,10 @@
-use libc::{c_void, c_uint, c_double, c_int, size_t};
+use std::{mem, slice};
 
-use util::{ZopfliGetLengthSymbol, ZopfliGetLengthExtraBits, ZopfliGetDistSymbol, ZopfliGetDistExtraBits, ZOPFLI_NUM_LL, ZOPFLI_NUM_D, ZOPFLI_LARGE_FLOAT};
-use lz77::{ZopfliLZ77Store, Lz77Store};
+use libc::{c_void, c_uint, c_double, c_int, size_t, c_uchar, c_ushort, malloc, c_float};
+
+use hash::ZopfliHash;
+use util::{ZopfliGetLengthSymbol, ZopfliGetLengthExtraBits, ZopfliGetDistSymbol, ZopfliGetDistExtraBits, ZOPFLI_NUM_LL, ZOPFLI_NUM_D, ZOPFLI_LARGE_FLOAT, ZOPFLI_WINDOW_SIZE, ZOPFLI_WINDOW_MASK, ZOPFLI_MAX_MATCH};
+use lz77::{ZopfliLZ77Store, Lz77Store, ZopfliBlockState, find_longest_match};
 
 const K_INV_LOG2: c_double = 1.4426950408889;  // 1.0 / log(2.0)
 
@@ -312,4 +315,127 @@ pub extern fn GetCostModelMinCost(costmodel: fn(c_uint, c_uint, *const c_void) -
         }
     }
     costmodel(bestlength as c_uint, bestdist as c_uint, costcontext)
+}
+
+/// Performs the forward pass for "squeeze". Gets the most optimal length to reach
+/// every byte from a previous byte, using cost calculations.
+/// s: the ZopfliBlockState
+/// in: the input data array
+/// instart: where to start
+/// inend: where to stop (not inclusive)
+/// costmodel: function to calculate the cost of some lit/len/dist pair.
+/// costcontext: abstract context for the costmodel function
+/// length_array: output array of size (inend - instart) which will receive the best
+///     length to reach this byte from a previous byte.
+/// returns the cost that was, according to the costmodel, needed to get to the end.
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern fn GetBestLengths(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void, length_array: *mut c_ushort) -> c_double {
+
+    let s = unsafe {
+        assert!(!s_ptr.is_null());
+        &mut *s_ptr
+    };
+
+    // Best cost to get here so far.
+    let blocksize = inend - instart;
+    let mut leng;
+    let mut longest_match;
+    let sublen = unsafe { malloc(mem::size_of::<c_ushort>() as size_t * 259) as *mut c_ushort };
+    let windowstart = if instart > ZOPFLI_WINDOW_SIZE {
+        instart - ZOPFLI_WINDOW_SIZE
+    } else {
+        0
+    };
+
+    let mincost = GetCostModelMinCost(costmodel, costcontext);
+
+    if instart == inend {
+        return 0.0;
+    }
+
+    let mut costs: Vec<c_float> = vec![ZOPFLI_LARGE_FLOAT as c_float; blocksize + 1];
+    costs[0] = 0.0;  // Because it's the start.
+
+    let mut h = ZopfliHash::new(ZOPFLI_WINDOW_SIZE);
+    let arr = unsafe { slice::from_raw_parts(in_data, inend) };
+    h.warmup(arr, windowstart, inend);
+    for i in windowstart..instart {
+        h.update(arr, i);
+    }
+
+    unsafe {
+        *length_array.offset(0) = 0;
+    }
+
+    let mut i = instart;
+    while i < inend {
+        let mut j = i - instart;  // Index in the costs array and length_array.
+        h.update(arr, i);
+
+        // If we're in a long repetition of the same character and have more than
+        // ZOPFLI_MAX_MATCH characters before and after our position.
+        if h.same[i & ZOPFLI_WINDOW_MASK] > ZOPFLI_MAX_MATCH as c_ushort * 2
+            && i > instart + ZOPFLI_MAX_MATCH + 1
+            && i + ZOPFLI_MAX_MATCH * 2 + 1 < inend
+            && h.same[(i - ZOPFLI_MAX_MATCH) & ZOPFLI_WINDOW_MASK] > ZOPFLI_MAX_MATCH as c_ushort {
+
+            let symbolcost = costmodel(ZOPFLI_MAX_MATCH as c_uint, 1, costcontext);
+            // Set the length to reach each one to ZOPFLI_MAX_MATCH, and the cost to
+            // the cost corresponding to that length. Doing this, we skip
+            // ZOPFLI_MAX_MATCH values to avoid calling ZopfliFindLongestMatch.
+
+            for _ in 0..ZOPFLI_MAX_MATCH {
+                costs[j + ZOPFLI_MAX_MATCH] = costs[j] + symbolcost as c_float;
+                unsafe {
+                    *length_array.offset((j + ZOPFLI_MAX_MATCH) as isize) = ZOPFLI_MAX_MATCH as c_ushort;
+                }
+                i += 1;
+                j += 1;
+                h.update(arr, i);
+            }
+        }
+
+        longest_match = find_longest_match(s, &mut h, arr, i, inend, ZOPFLI_MAX_MATCH, sublen);
+        leng = longest_match.length;
+
+        // Literal.
+        if i + 1 <= inend {
+            let newCost = costs[j] as c_double + costmodel(arr[i] as c_uint, 0, costcontext);
+            assert!(newCost >= 0.0);
+            if newCost < costs[j + 1] as c_double {
+                costs[j + 1] = newCost as c_float;
+                unsafe {
+                    *length_array.offset((j + 1) as isize) = 1;
+                }
+
+            }
+        }
+        // Lengths.
+        let mut k: usize = 3;
+        while (k as c_ushort) <= leng && i + k <= inend {
+            // Calling the cost model is expensive, avoid this if we are already at
+            // the minimum possible cost that it can return.
+            if ((costs[j + k] - costs[j]) as c_double) <= mincost {
+                k += 1;
+                continue;
+            }
+
+            let newCost = costs[j] as c_double + costmodel(k as c_uint, unsafe { *sublen.offset(k as isize) } as c_uint, costcontext);
+            assert!(newCost >= 0.0);
+            if newCost < costs[j + k] as c_double {
+                assert!(k <= ZOPFLI_MAX_MATCH);
+                costs[j + k] = newCost as c_float;
+                unsafe {
+                    *length_array.offset((j + k) as isize) = k as c_ushort;
+                }
+
+            }
+            k += 1;
+        }
+        i += 1;
+    }
+
+    assert!(costs[blocksize] >= 0.0);
+    costs[blocksize] as c_double
 }
