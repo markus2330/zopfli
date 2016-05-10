@@ -762,115 +762,14 @@ pub extern fn ZopfliLZ77GetHistogram(lz77_ptr: *mut ZopfliLZ77Store, lstart: siz
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern fn ZopfliLZ77Greedy(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, store_ptr: *mut ZopfliLZ77Store) {
-    let s = unsafe {
-        assert!(!s_ptr.is_null());
-        &mut *s_ptr
-    };
     let store = unsafe {
         assert!(!store_ptr.is_null());
         &mut *store_ptr
     };
 
     let rust_store = lz77_store_from_c(store_ptr);
-
-    let mut leng: c_ushort;
-    let mut dist: c_ushort;
-    let mut lengthscore: c_int;
-    let windowstart = if instart > ZOPFLI_WINDOW_SIZE {
-        instart - ZOPFLI_WINDOW_SIZE
-    } else {
-        0
-    };
-
-    let mut longest_match;
-
-    /* Lazy matching. */
-    let mut prev_length: c_uint = 0;
-    let mut prev_match: c_uint = 0;
-    let mut prevlengthscore: c_int;
-    let mut match_available = false;
-
-    if instart == inend {
-        return;
-    }
-
-    let mut h = ZopfliHash::new(ZOPFLI_WINDOW_SIZE);
-
-    let arr = unsafe { slice::from_raw_parts(in_data, inend) };
-    h.warmup(arr, windowstart, inend);
-
-    for i in windowstart..instart {
-        h.update(arr, i);
-    }
-
-    let mut i = instart;
-    while i < inend {
-        h.update(arr, i);
-
-        longest_match = find_longest_match(s, &mut h, arr, i, inend, ZOPFLI_MAX_MATCH, ptr::null_mut());
-        dist = longest_match.distance;
-        leng = longest_match.length;
-        lengthscore = get_length_score(leng as c_int, dist as c_int);
-
-        /* Lazy matching. */
-        prevlengthscore = get_length_score(prev_length as c_int, prev_match as c_int);
-        if match_available {
-            match_available = false;
-            if lengthscore > prevlengthscore + 1 {
-                unsafe {
-                    (&mut *rust_store).lit_len_dist(arr[i - 1] as c_ushort, 0, i - 1);
-                }
-                if (lengthscore as size_t) >= ZOPFLI_MIN_MATCH && (leng as size_t) < ZOPFLI_MAX_MATCH {
-                    match_available = true;
-                    prev_length = leng as c_uint;
-                    prev_match = dist as c_uint;
-                    i += 1;
-                    continue;
-                }
-            } else {
-                /* Add previous to output. */
-                leng = prev_length as c_ushort;
-                dist = prev_match as c_ushort;
-                /* Add to output. */
-                verify_len_dist(arr, i - 1, dist, leng);
-                unsafe {
-                    (&mut *rust_store).lit_len_dist(leng, dist, i - 1);
-                }
-                for _ in 2..leng {
-                    assert!(i < inend);
-                    i += 1;
-                    h.update(arr, i);
-                 }
-                 i += 1;
-                 continue;
-            }
-        } else if (lengthscore as size_t) >= ZOPFLI_MIN_MATCH && (leng as size_t) < ZOPFLI_MAX_MATCH {
-            match_available = true;
-            prev_length = leng as c_uint;
-            prev_match = dist as c_uint;
-            i += 1;
-            continue;
-        }
-        /* End of lazy matching. */
-
-        /* Add to output. */
-        if (lengthscore as size_t) >= ZOPFLI_MIN_MATCH {
-            verify_len_dist(arr, i, dist, leng);
-            unsafe {
-                (&mut *rust_store).lit_len_dist(leng, dist, i);
-            }
-        } else {
-            leng = 1;
-            unsafe {
-                (&mut *rust_store).lit_len_dist(arr[i] as c_ushort, 0, i);
-            }
-        }
-        for _ in 1..leng {
-            assert!(i < inend);
-            i += 1;
-            h.update(arr, i);
-        }
-        i += 1;
+    unsafe {
+        (&mut *rust_store).greedy(s_ptr, in_data, instart, inend);
     }
 
     lz77_store_result(rust_store, store);
