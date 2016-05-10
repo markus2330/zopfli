@@ -282,7 +282,7 @@ void ZopfliBlockSplit(const ZopfliOptions* options,
   size_t nlz77points = 0;
   ZopfliLZ77Store store;
 
-  ZopfliInitLZ77Store(in, &store);
+  ZopfliInitLZ77Store(&store);
   ZopfliInitBlockState(options, instart, inend, 0, &s);
 
   *npoints = 0;
