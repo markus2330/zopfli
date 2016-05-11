@@ -28,7 +28,6 @@ compression.
 #include <stdlib.h>
 
 #include "cache.h"
-#include "hash.h"
 #include "zopfli.h"
 
 /*

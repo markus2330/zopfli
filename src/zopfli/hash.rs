@@ -5,7 +5,6 @@ use util::{ZOPFLI_WINDOW_MASK, ZOPFLI_MIN_MATCH};
 const HASH_SHIFT: c_int = 5;
 const HASH_MASK: c_int = 32767;
 
-#[repr(C)]
 pub struct ZopfliHash {
     head: Vec<c_int>,  /* Hash value to index of its most recent occurrence. */
     prev: Vec<c_ushort>,  /* Index to index of prev. occurrence of same hash. */
