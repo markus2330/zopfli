@@ -51,7 +51,6 @@ typedef double CostModelFun(unsigned litlen, unsigned dist, void* context);
 
 extern double GetCostFixed(unsigned litlen, unsigned dist, void* unused);
 extern double GetCostStat(unsigned litlen, unsigned dist, void* context);
-extern double GetCostModelMinCost(CostModelFun* costmodel, void* costcontext);
 extern double GetBestLengths(ZopfliBlockState *s, const unsigned char* in, size_t instart, size_t inend, CostModelFun* costmodel, void* costcontext, unsigned short* length_array, float* costs);
 
 /*
