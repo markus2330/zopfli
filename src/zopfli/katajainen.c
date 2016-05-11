@@ -48,15 +48,7 @@ typedef struct NodePool {
   int size;  /* Size of the memory pool. */
 } NodePool;
 
-/*
-Initializes a chain node with the given values and marks it as in use.
-*/
-static void InitNode(size_t weight, int count, Node* tail, Node* node) {
-  node->weight = weight;
-  node->count = count;
-  node->tail = tail;
-  node->inuse = 1;
-}
+extern void InitNode(size_t weight, int count, Node* tail, Node* node);
 
 /*
 Finds a free location in the memory pool. Performs garbage collection if needed.
