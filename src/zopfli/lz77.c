@@ -177,4 +177,4 @@ extern void ZopfliVerifyLenDist(const unsigned char* data, size_t datasize, size
 typedef struct lz77_store_S lz77_store_t;
 extern lz77_store_t * lz77_store_from_c(ZopfliLZ77Store *);
 extern void lz77_store_result(lz77_store_t *, ZopfliLZ77Store *);
-extern void ZopfliLZ77Greedy(ZopfliBlockState* s, const unsigned char* in, size_t instart, size_t inend, ZopfliLZ77Store* store, ZopfliHash* h);
+extern void ZopfliLZ77Greedy(ZopfliBlockState* s, const unsigned char* in, size_t instart, size_t inend, ZopfliLZ77Store* store);

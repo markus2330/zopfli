@@ -334,7 +334,7 @@ pub extern fn GetCostModelMinCost(costmodel: fn(c_uint, c_uint, *const c_void) -
 /// returns the cost that was, according to the costmodel, needed to get to the end.
 #[no_mangle]
 #[allow(non_snake_case)]
-pub extern fn GetBestLengths(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void, length_array: *mut c_ushort, _h: *mut ZopfliHash, _costs: *mut c_float) -> c_double {
+pub extern fn GetBestLengths(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void, length_array: *mut c_ushort, _costs: *mut c_float) -> c_double {
 
     let s = unsafe {
         assert!(!s_ptr.is_null());

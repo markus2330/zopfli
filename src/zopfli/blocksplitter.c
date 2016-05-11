@@ -24,7 +24,6 @@ Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
 #include <stdlib.h>
 
 #include "deflate.h"
-#include "hash.h"
 #include "squeeze.h"
 #include "tree.h"
 #include "util.h"
@@ -282,7 +281,6 @@ void ZopfliBlockSplit(const ZopfliOptions* options,
   size_t* lz77splitpoints = 0;
   size_t nlz77points = 0;
   ZopfliLZ77Store store;
-  ZopfliHash* h = ZopfliAllocHash(ZOPFLI_WINDOW_SIZE);
 
   ZopfliInitLZ77Store(&store);
   ZopfliInitBlockState(options, instart, inend, 0, &s);
@@ -292,7 +290,7 @@ void ZopfliBlockSplit(const ZopfliOptions* options,
 
   /* Unintuitively, Using a simple LZ77 method here instead of ZopfliLZ77Optimal
   results in better blocks. */
-  ZopfliLZ77Greedy(&s, in, instart, inend, &store, h);
+  ZopfliLZ77Greedy(&s, in, instart, inend, &store);
 
   ZopfliBlockSplitLZ77(options,
                        &store, maxblocks,
@@ -315,7 +313,6 @@ void ZopfliBlockSplit(const ZopfliOptions* options,
   free(lz77splitpoints);
   ZopfliCleanBlockState(&s);
   ZopfliCleanLZ77Store(&store);
-  ZopfliCleanHash(h);
 }
 
 void ZopfliBlockSplitSimple(const unsigned char* in,

@@ -28,7 +28,6 @@ compression.
 #include <stdlib.h>
 
 #include "cache.h"
-#include "hash.h"
 #include "zopfli.h"
 
 /*
@@ -122,6 +121,6 @@ dictionary.
 */
 void ZopfliLZ77Greedy(ZopfliBlockState* s, const unsigned char* in,
                       size_t instart, size_t inend,
-                      ZopfliLZ77Store* store, ZopfliHash* h);
+                      ZopfliLZ77Store* store);
 
 #endif  /* ZOPFLI_LZ77_H_ */
