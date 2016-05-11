@@ -1,5 +1,3 @@
-use std::slice;
-
 use libc::{c_int, c_ushort, c_uchar, size_t};
 
 use util::{ZOPFLI_WINDOW_MASK, ZOPFLI_MIN_MATCH};
@@ -153,38 +151,6 @@ impl ZopfliHash {
 
 #[no_mangle]
 #[allow(non_snake_case)]
-pub extern fn ZopfliWarmupHash(array: *const c_uchar, pos: size_t, end: size_t, h_ptr: *mut ZopfliHash) {
-    let h = unsafe {
-        assert!(!h_ptr.is_null());
-        &mut *h_ptr
-    };
-    let arr = unsafe { slice::from_raw_parts(array, end) };
-    h.warmup(arr, pos, end);
-}
-
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn ZopfliUpdateHash(array: *const c_uchar, pos: size_t, end: size_t, h_ptr: *mut ZopfliHash) {
-    let h = unsafe {
-        assert!(!h_ptr.is_null());
-        &mut *h_ptr
-    };
-    let arr = unsafe { slice::from_raw_parts(array, end) };
-    h.update(arr, pos);
-}
-
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn ZopfliHashSameAt(h_ptr: *mut ZopfliHash, index: size_t) -> c_ushort {
-    let h = unsafe {
-        assert!(!h_ptr.is_null());
-        &mut *h_ptr
-    };
-    h.same[index]
-}
-
-#[no_mangle]
-#[allow(non_snake_case)]
 pub extern fn ZopfliCleanHash(ptr: *mut ZopfliHash) {
     if ptr.is_null() { return }
     unsafe { Box::from_raw(ptr); }
@@ -194,15 +160,4 @@ pub extern fn ZopfliCleanHash(ptr: *mut ZopfliHash) {
 #[allow(non_snake_case)]
 pub extern fn ZopfliAllocHash(window_size: size_t) -> *mut ZopfliHash {
     Box::into_raw(Box::new(ZopfliHash::new(window_size)))
-}
-
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn ZopfliResetHash(window_size: size_t, h_ptr: *mut ZopfliHash) {
-    let h = unsafe {
-        assert!(!h_ptr.is_null());
-        &mut *h_ptr
-    };
-
-    h.reset(window_size);
 }
