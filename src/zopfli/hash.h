@@ -28,25 +28,4 @@ The hash for ZopfliFindLongestMatch of lz77.c.
 
 typedef struct ZopfliHash ZopfliHash;
 
-/* Allocates and initializes all fields of ZopfliHash. */
-ZopfliHash* ZopfliInitHash(size_t window_size);
-
-/* Frees all fields of ZopfliHash. */
-void ZopfliCleanHash(ZopfliHash* h);
-
-/*
-Updates the hash values based on the current position in the array. All calls
-to this must be made for consecutive bytes.
-*/
-void ZopfliUpdateHash(const unsigned char* array, size_t pos, size_t end,
-                      ZopfliHash* h);
-
-/*
-Prepopulates hash:
-Fills in the initial values in the hash, before ZopfliUpdateHash can be used
-correctly.
-*/
-void ZopfliWarmupHash(const unsigned char* array, size_t pos, size_t end,
-                      ZopfliHash* h);
-
 #endif  /* ZOPFLI_HASH_H_ */
