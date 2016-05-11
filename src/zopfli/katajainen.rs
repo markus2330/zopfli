@@ -1,4 +1,4 @@
-use libc::{size_t, c_int, c_char};
+use libc::{size_t, c_int, c_char, c_uint};
 
 // Bounded package merge algorithm, based on the paper
 // "A Fast and Space-Economical Algorithm for Length-Limited Coding
@@ -35,4 +35,28 @@ pub extern fn InitNode(weight: size_t, count: c_int, tail: *const Node, node_ptr
     node.count = count;
     node.tail = tail;
     node.inuse = 1;
+}
+
+/// Converts result of boundary package-merge to the bitlengths. The result in the
+/// last chain of the last list contains the amount of active leaves in each list.
+/// chain: Chain to extract the bit length from (last chain from last list).
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern fn ExtractBitLengths(chain: *const Node, leaves: *const Node, bitlengths: *mut c_uint) {
+    if chain.is_null() {
+        return;
+    }
+    let mut node_ptr = chain;
+    while !node_ptr.is_null() {
+        let node = unsafe {
+           &*node_ptr
+        };
+        for i in 0..node.count {
+            unsafe {
+                let leaf = &*leaves.offset(i as isize);
+                *bitlengths.offset(leaf.count as isize) += 1;
+            }
+        }
+        node_ptr = node.tail;
+    }
 }
