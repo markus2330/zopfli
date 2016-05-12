@@ -59,3 +59,76 @@ pub extern fn ZopfliGetDistExtraBitsValue(dist: c_int) -> c_int {
         (dist - 16385) & 8191
     }
 }
+
+/// Gets the symbol for the given dist, cfr. the DEFLATE spec.
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern fn ZopfliGetDistSymbol(dist: c_int) -> c_int {
+    if dist < 193 {
+        if dist < 13 {  /* dist 0..13. */
+            if dist < 5 {
+                dist - 1
+            } else if dist < 7 {
+                4
+            } else if dist < 9 {
+                5
+            } else {
+                6
+            }
+        } else {  /* dist 13..193. */
+            if dist < 17 {
+                7
+            } else if dist < 25 {
+                8
+            } else if dist < 33 {
+                9
+            } else if dist < 49 {
+                10
+            } else if dist < 65 {
+                11
+            } else if dist < 97 {
+                12
+            } else if dist < 129 {
+                13
+            } else {
+                14
+            }
+        }
+    } else {
+        if dist < 2049 {  /* dist 193..2049. */
+            if dist < 257 {
+                15
+            } else if dist < 385 {
+                16
+            } else if dist < 513 {
+                17
+            } else if dist < 769 {
+                18
+            } else if dist < 1025 {
+                19
+            } else if dist < 1537 {
+                20
+            } else {
+                21
+            }
+        } else {  /* dist 2049..32768. */
+            if dist < 3073 {
+                22
+            } else if dist < 4097 {
+                23
+            } else if dist < 6145 {
+                24
+            } else if dist < 8193 {
+                25
+            } else if dist < 12289 {
+                26
+            } else if dist < 16385 {
+                27
+            } else if dist < 24577 {
+                28
+            } else {
+                29
+            }
+        }
+    }
+}
