@@ -24,10 +24,9 @@ pub extern fn GetFixedTree(ll_lengths: *mut c_uint, d_lengths: *mut c_uint) {
     }
 }
 
-
-/// Change the population counts in a way that the consequent Huffman tree
-/// compression, especially its rle-part will be more likely to compress this data
-/// more efficiently. length containts the size of the histogram.
+/// Changes the population counts in a way that the consequent Huffman tree
+/// compression, especially its rle-part, will be more likely to compress this data
+/// more efficiently. length contains the size of the histogram.
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern fn OptimizeHuffmanForRle(length: c_int, counts: *mut size_t) {
@@ -95,8 +94,10 @@ pub extern fn OptimizeHuffmanForRle(length: c_int, counts: *mut size_t) {
                     unsafe { *counts.offset((i - k - 1) as isize) = count as size_t };
                 }
             }
+
             stride = 0;
             sum = 0;
+            // length > 2 added so it won't underflow; i can't be negative anyway
             if length > 2 && i < length - 3 {
                 // All interesting strides have a count of at least 4,
                 // at least when non-zeros.
