@@ -1,4 +1,4 @@
-use libc::{size_t, c_int, c_char, c_uint};
+use libc::{size_t, c_int, c_uint};
 
 // Bounded package merge algorithm, based on the paper
 // "A Fast and Space-Economical Algorithm for Length-Limited Coding
@@ -41,7 +41,7 @@ pub extern fn ExtractBitLengths(chain: *const Node, leaves: *const Node, bitleng
     let mut counts = [0; 16];
     let mut end = 16;
     let mut ptr = 15;
-    let value = 1;
+    let mut value = 1;
 
     let mut node_ptr = chain;
     while !node_ptr.is_null() {

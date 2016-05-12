@@ -1,9 +1,10 @@
-use std::{mem, slice, ptr};
+use std::{mem, slice, ptr, cmp};
 
 use libc::{c_void, c_uint, c_double, c_int, size_t, c_uchar, c_ushort, malloc, c_float};
 
 use hash::ZopfliHash;
-use util::{ZopfliGetLengthSymbol, ZopfliGetLengthExtraBits, ZopfliGetDistSymbol, ZopfliGetDistExtraBits, ZOPFLI_NUM_LL, ZOPFLI_NUM_D, ZOPFLI_LARGE_FLOAT, ZOPFLI_WINDOW_SIZE, ZOPFLI_WINDOW_MASK, ZOPFLI_MAX_MATCH, ZOPFLI_MIN_MATCH};
+use symbols::ZopfliGetDistExtraBits;
+use util::{ZopfliGetLengthSymbol, ZopfliGetLengthExtraBits, ZopfliGetDistSymbol, ZOPFLI_NUM_LL, ZOPFLI_NUM_D, ZOPFLI_LARGE_FLOAT, ZOPFLI_WINDOW_SIZE, ZOPFLI_WINDOW_MASK, ZOPFLI_MAX_MATCH, ZOPFLI_MIN_MATCH};
 use lz77::{ZopfliLZ77Store, Lz77Store, ZopfliBlockState, find_longest_match, lz77_store_from_c,     lz77_store_result, verify_len_dist};
 
 const K_INV_LOG2: c_double = 1.4426950408889;  // 1.0 / log(2.0)
@@ -334,7 +335,7 @@ pub fn get_cost_model_min_cost(costmodel: fn(c_uint, c_uint, *const c_void) -> c
 // TODO: upstream is now reusing an already allocated hash; we're ignoring it
 #[no_mangle]
 #[allow(non_snake_case)]
-pub extern fn GetBestLengths(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void, length_array: *mut c_ushort, _h: *mut ZopfliHash, costs: *mut c_float) -> c_double {
+pub extern fn GetBestLengths(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void, length_array: *mut c_ushort, _costs: *mut c_float) -> c_double {
 
     let s = unsafe {
         assert!(!s_ptr.is_null());
@@ -416,13 +417,12 @@ pub extern fn GetBestLengths(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar
             }
         }
         // Lengths.
-        let mut k: usize = 3;
-        let kend = cmp::min(leng, inend - i);
-        let mincostaddcostj = mincost + costs[j];
+        let kend = cmp::min(leng as size_t, inend - i);
+        let mincostaddcostj = mincost + costs[j] as c_double;
         for k in 3..(kend + 1) {
             // Calling the cost model is expensive, avoid this if we are already at
             // the minimum possible cost that it can return.
-            if costs[j + k] <= mincostaddcostj {
+            if costs[j + k] as c_double <= mincostaddcostj {
                 continue;
             }
 
@@ -447,7 +447,7 @@ pub extern fn GetBestLengths(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar
 #[no_mangle]
 #[allow(non_snake_case)]
 // TODO: upstream is now reusing an already allocated hash; we're ignoring it
-pub extern fn FollowPath(s_ptr: *mut ZopfliBlockState, in_data: *const c_uchar, instart: size_t, inend: size_t, path: *const c_ushort, pathsize: size_t, store_ptr: *mut ZopfliLZ77Store, _h: *mut ZopfliHash) {
+pub extern fn FollowPath(s_ptr: *mut ZopfliBlockState, in_data: *const c_uchar, instart: size_t, inend: size_t, path: *const c_ushort, pathsize: size_t, store_ptr: *mut ZopfliLZ77Store) {
     let s = unsafe {
         assert!(!s_ptr.is_null());
         &mut *s_ptr

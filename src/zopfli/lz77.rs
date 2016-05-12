@@ -734,7 +734,7 @@ pub extern fn ZopfliLZ77GetHistogram(lz77_ptr: *mut ZopfliLZ77Store, lstart: siz
 // TODO: upstream is now reusing an already allocated hash; we're ignoring it
 #[no_mangle]
 #[allow(non_snake_case)]
-pub extern fn ZopfliLZ77Greedy(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, store_ptr: *mut ZopfliLZ77Store, _hash_ptr: *mut ZopfliHash) {
+pub extern fn ZopfliLZ77Greedy(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, store_ptr: *mut ZopfliLZ77Store) {
     let store = unsafe {
         assert!(!store_ptr.is_null());
         &mut *store_ptr

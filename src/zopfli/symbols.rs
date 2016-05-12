@@ -1,3 +1,5 @@
+use libc::{c_int};
+
 /// Gets the amount of extra bits for the given dist, cfr. the DEFLATE spec.
 #[no_mangle]
 #[allow(non_snake_case)]
