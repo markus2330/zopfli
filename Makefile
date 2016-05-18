@@ -4,7 +4,9 @@ CXX = g++
 CFLAGS = -W -Wall -Wextra -ansi -pedantic -lm -O2 -Wno-unused-function
 CXXFLAGS = -W -Wall -Wextra -ansi -pedantic -O2
 
-ZOPFLILIB_SRC = target/debug/libzopfli.a src/zopfli/blocksplitter.c src/zopfli/cache.c\
+ZOPFLI_RUST_DEBUG := target/debug/libzopfli.a
+ZOPFLI_RUST_RELEASE := target/release/libzopfli.a
+ZOPFLILIB_SRC = src/zopfli/blocksplitter.c src/zopfli/cache.c\
                 src/zopfli/deflate.c src/zopfli/gzip_container.c\
                 src/zopfli/katajainen.c\
                 src/zopfli/lz77.c src/zopfli/squeeze.c\
@@ -22,9 +24,17 @@ ZOPFLIPNGBIN_SRC := src/zopflipng/zopflipng_bin.cc
 target/debug/libzopfli.a:
 	cargo build --verbose
 
+.PHONY: target/release/libzopfli.a
+target/release/libzopfli.a:
+	cargo build --verbose --release
+
 # Zopfli binary
-zopfli:
-	$(CC) $(ZOPFLILIB_SRC) $(ZOPFLIBIN_SRC) $(CFLAGS) -o zopfli
+zopfli: $(ZOPFLI_RUST_RELEASE)
+	$(CC) $(ZOPFLI_RUST_RELEASE) $(ZOPFLILIB_SRC) $(ZOPFLIBIN_SRC) $(CFLAGS) -o zopfli
+
+# Zopfli debug binary
+zopflidebug: $(ZOPFLI_RUST_DEBUG)
+	$(CC) $(ZOPFLI_RUST_DEBUG) $(ZOPFLILIB_SRC) $(ZOPFLIBIN_SRC) $(CFLAGS) -o zopfli
 
 # Zopfli shared library
 libzopfli:
@@ -43,4 +53,4 @@ libzopflipng:
 
 # Remove all libraries and binaries
 clean:
-	rm -f zopflipng zopfli $(ZOPFLILIB_OBJ) libzopfli*
+	cargo clean && rm -f zopflipng zopfli $(ZOPFLILIB_OBJ) libzopfli*
