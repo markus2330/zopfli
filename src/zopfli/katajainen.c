@@ -26,6 +26,7 @@ Jyrki Katajainen, Alistair Moffat, Andrew Turpin".
 #include "katajainen.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <limits.h>
 
 typedef struct Node Node;
@@ -158,6 +159,14 @@ int ZopfliLengthLimitedCodeLengths(
   /* One leaf per symbol. Only numsymbols leaves will be used. */
   Leaf* leaves = (Leaf*)malloc(n * sizeof(*leaves));
 
+  fprintf(stderr, "maxbits: %d", maxbits);
+
+  fprintf(stderr, "frequencies: [");
+  for (i = 0; i < n; i++) {
+    fprintf(stderr, "%d, ", frequencies[i]);
+  }
+  fprintf(stderr, "]\n");
+
   /* Initialize all bitlengths at 0. */
   for (i = 0; i < n; i++) {
     bitlengths[i] = 0;
@@ -228,6 +237,14 @@ int ZopfliLengthLimitedCodeLengths(
   BoundaryPMFinal(lists, leaves, numsymbols, &pool, maxbits - 1);
 
   ExtractBitLengths(lists[maxbits - 1][1], leaves, bitlengths);
+
+  fprintf(stderr, "bitlengths: [");
+  for (i = 0; i < n; i++) {
+    fprintf(stderr, "%d, ", bitlengths[i]);
+  }
+  fprintf(stderr, "]\n");
+
+
 
   free(lists);
   free(leaves);
