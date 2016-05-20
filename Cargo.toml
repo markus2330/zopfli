@@ -15,4 +15,5 @@ crate-type = ["staticlib"]
 
 [dependencies]
 libc = "*"
-
+flamer = "*"
+flame = "*"

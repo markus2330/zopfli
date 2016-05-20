@@ -44,6 +44,7 @@ struct List {
 
 #[no_mangle]
 #[allow(non_snake_case)]
+#[flame]
 pub extern fn ZopfliLengthLimitedCodeLengths(frequencies: *const size_t, n: c_int, maxbits: c_int, bitlengths: *mut c_uint) -> c_int {
     let freqs = unsafe { slice::from_raw_parts(frequencies, n as usize) };
     let result = length_limited_code_lengths(freqs, maxbits);
