@@ -58,7 +58,7 @@ pub extern fn ZopfliLengthLimitedCodeLengths(frequencies: *const size_t, n: c_in
     return 0;
 }
 
-
+#[flame]
 pub fn length_limited_code_lengths(frequencies: &[size_t], maxbits: c_int) -> Vec<size_t> {
     let mut leaves = vec![];
 
@@ -129,6 +129,7 @@ pub fn length_limited_code_lengths(frequencies: &[size_t], maxbits: c_int) -> Ve
     result
 }
 
+#[flame]
 fn boundary_pm(mut lists: Vec<List>, leaves: &Vec<Leaf>) -> Vec<List> {
     let mut current_list = lists.pop().unwrap();
     if lists.is_empty() && current_list.next_leaf_index == leaves.len() {
@@ -191,6 +192,13 @@ fn boundary_pm(mut lists: Vec<List>, leaves: &Vec<Leaf>) -> Vec<List> {
 mod test {
     use super::*;
 
+    use std::fs::File;
+    use flame;
+
+    fn dump_flame() {
+        flame::dump_html(&mut File::create("flame-graph.html").unwrap()).unwrap();
+    }
+
     #[test]
     fn test_from_paper_3() {
         let input = [1, 1, 5, 7, 10, 14];
@@ -220,6 +228,7 @@ mod test {
         let input = [0, 0, 0, 0, 0, 0, 18, 0, 6, 0, 12, 2, 14, 9, 27, 15, 23, 15, 17, 8, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         let output = length_limited_code_lengths(&input, 15);
         let answer = vec! [0, 0, 0, 0, 0, 0, 3, 0, 5, 0, 4, 6, 4, 4, 3, 4, 3, 3, 3, 4, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        dump_flame();
         assert_eq!(output, answer);
     }
 

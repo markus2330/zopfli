@@ -14,10 +14,3 @@ pub mod symbols;
 pub mod tree;
 pub mod util;
 pub mod zopfli;
-
-use std::fs::File;
-
-#[no_mangle]
-pub extern fn dump_flame() {
-    flame::dump_html(&mut File::create("flame-graph.html").unwrap()).unwrap();
-}
