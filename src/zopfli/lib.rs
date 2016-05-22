@@ -1,8 +1,4 @@
-#![feature(plugin)]
-#![plugin(flamer)]
-
 extern crate libc;
-extern crate flame;
 
 pub mod cache;
 pub mod deflate;

@@ -15,5 +15,6 @@ crate-type = ["staticlib"]
 
 [dependencies]
 libc = "*"
-flamer = "*"
-flame = "*"
+
+[profile.release]
+debug = true
