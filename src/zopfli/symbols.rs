@@ -167,9 +167,21 @@ const LENGTH_SYMBOL_TABLE: [c_int; 259] = [
     284, 284, 284, 284, 284, 284, 284, 285,
 ];
 
+/// Returns symbol in range [257-285] (inclusive).
 #[no_mangle]
 #[allow(non_snake_case)]
-/// Returns symbol in range [257-285] (inclusive).
 pub extern fn ZopfliGetLengthSymbol(length: c_int) -> c_int {
     LENGTH_SYMBOL_TABLE[length as usize]
+}
+
+const LENGTH_SYMBOL_EXTRA_BITS_TABLE: [c_int; 29] = [
+    0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
+    3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0
+];
+
+/// Gets the amount of extra bits for the given length symbol.
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern fn ZopfliGetLengthSymbolExtraBits(s: c_int) -> c_int {
+    LENGTH_SYMBOL_EXTRA_BITS_TABLE[s as usize - 257]
 }
