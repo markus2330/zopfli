@@ -3,8 +3,8 @@ use std::{mem, slice, ptr, cmp};
 use libc::{c_void, c_uint, c_double, c_int, size_t, c_uchar, c_ushort, malloc, c_float};
 
 use hash::ZopfliHash;
-use symbols::{ZopfliGetDistExtraBits, ZopfliGetDistSymbol};
-use util::{ZopfliGetLengthSymbol, ZopfliGetLengthExtraBits, ZOPFLI_NUM_LL, ZOPFLI_NUM_D, ZOPFLI_LARGE_FLOAT, ZOPFLI_WINDOW_SIZE, ZOPFLI_WINDOW_MASK, ZOPFLI_MAX_MATCH, ZOPFLI_MIN_MATCH};
+use symbols::{ZopfliGetDistExtraBits, ZopfliGetDistSymbol, ZopfliGetLengthExtraBits};
+use util::{ZopfliGetLengthSymbol, ZOPFLI_NUM_LL, ZOPFLI_NUM_D, ZOPFLI_LARGE_FLOAT, ZOPFLI_WINDOW_SIZE, ZOPFLI_WINDOW_MASK, ZOPFLI_MAX_MATCH, ZOPFLI_MIN_MATCH};
 use lz77::{ZopfliLZ77Store, Lz77Store, ZopfliBlockState, find_longest_match, lz77_store_from_c,     lz77_store_result, verify_len_dist};
 
 const K_INV_LOG2: c_double = 1.4426950408889;  // 1.0 / log(2.0)
