@@ -333,9 +333,7 @@ pub fn get_cost_model_min_cost(costmodel: fn(c_uint, c_uint, *const c_void) -> c
 /// returns the cost that was, according to the costmodel, needed to get to the end.
 
 // TODO: upstream is now reusing an already allocated hash; we're ignoring it
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn GetBestLengths(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void, length_array: *mut c_ushort, _costs: *mut c_float) -> c_double {
+pub fn get_best_lengths(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void, length_array: *mut c_ushort, _costs: *mut c_float) -> c_double {
 
     let s = unsafe {
         assert!(!s_ptr.is_null());
@@ -406,14 +404,13 @@ pub extern fn GetBestLengths(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar
 
         // Literal.
         if i + 1 <= inend {
-            let newCost = costmodel(arr[i] as c_uint, 0, costcontext) + costs[j] as c_double;
-            assert!(newCost >= 0.0);
-            if newCost < costs[j + 1] as c_double {
-                costs[j + 1] = newCost as c_float;
+            let new_cost = costmodel(arr[i] as c_uint, 0, costcontext) + costs[j] as c_double;
+            assert!(new_cost >= 0.0);
+            if new_cost < costs[j + 1] as c_double {
+                costs[j + 1] = new_cost as c_float;
                 unsafe {
                     *length_array.offset((j + 1) as isize) = 1;
                 }
-
             }
         }
         // Lengths.
@@ -426,15 +423,14 @@ pub extern fn GetBestLengths(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar
                 continue;
             }
 
-            let newCost = costs[j] as c_double + costmodel(k as c_uint, unsafe { *sublen.offset(k as isize) } as c_uint, costcontext);
-            assert!(newCost >= 0.0);
-            if newCost < costs[j + k] as c_double {
+            let new_cost = costs[j] as c_double + costmodel(k as c_uint, unsafe { *sublen.offset(k as isize) } as c_uint, costcontext);
+            assert!(new_cost >= 0.0);
+            if new_cost < costs[j + k] as c_double {
                 assert!(k <= ZOPFLI_MAX_MATCH);
-                costs[j + k] = newCost as c_float;
+                costs[j + k] = new_cost as c_float;
                 unsafe {
                     *length_array.offset((j + k) as isize) = k as c_ushort;
                 }
-
             }
         }
         i += 1;
@@ -561,7 +557,7 @@ pub fn trace_backwards(size: size_t, length_array: *const c_ushort) -> Vec<c_ush
 #[allow(non_snake_case)]
 pub extern fn LZ77OptimalRun(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, length_array: *mut c_ushort, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void, store_ptr: *mut ZopfliLZ77Store, costs: *mut c_float) {
 
-    let cost = GetBestLengths(s_ptr, in_data, instart, inend, costmodel, costcontext, length_array, costs);
+    let cost = get_best_lengths(s_ptr, in_data, instart, inend, costmodel, costcontext, length_array, costs);
     let path = trace_backwards(inend - instart, length_array);
     follow_path(s_ptr, in_data, instart, inend, path, store_ptr);
     assert!(cost < ZOPFLI_LARGE_FLOAT);
