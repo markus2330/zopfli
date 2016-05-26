@@ -55,26 +55,22 @@ extern double GetCostStat(unsigned litlen, unsigned dist, void* context);
 extern void CalculateStatistics(SymbolStats* stats);
 extern void GetStatistics(const ZopfliLZ77Store* store, SymbolStats* stats);
 
-extern void LZ77OptimalRun(ZopfliBlockState* s, const unsigned char* in, size_t instart, size_t inend, CostModelFun* costmodel, void* costcontext, ZopfliLZ77Store* store, float* costs);
+extern void LZ77OptimalRun(ZopfliBlockState* s, const unsigned char* in, size_t instart, size_t inend, CostModelFun* costmodel, void* costcontext, ZopfliLZ77Store* store);
 
 void ZopfliLZ77Optimal(ZopfliBlockState *s,
                        const unsigned char* in, size_t instart, size_t inend,
                        int numiterations,
                        ZopfliLZ77Store* store) {
   /* Dist to get to here with smallest cost. */
-  size_t blocksize = inend - instart;
   ZopfliLZ77Store currentstore;
   SymbolStats *stats, *beststats, *laststats;
   int i;
-  float* costs = (float*)malloc(sizeof(float) * (blocksize + 1));
   double cost;
   double bestcost = ZOPFLI_LARGE_FLOAT;
   double lastcost = 0;
   /* Try randomizing the costs a bit once the size stabilizes. */
   RanState *ran_state;
   int lastrandomstep = -1;
-
-  if (!costs) exit(-1); /* Allocation failed. */
 
   ran_state = ran_state_new();
   stats = symbol_stats_new();
@@ -96,7 +92,7 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
     ZopfliInitLZ77Store(&currentstore);
     LZ77OptimalRun(s, in, instart, inend,
                    GetCostStat, (void*)stats,
-                   &currentstore, costs);
+                   &currentstore);
     cost = ZopfliCalculateBlockSize(&currentstore, 0, currentstore.size, 2);
     if (s->options->verbose_more || (s->options->verbose && cost < bestcost)) {
       fprintf(stderr, "Iteration %d: %d bit\n", i, (int) cost);
@@ -126,7 +122,6 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
     lastcost = cost;
   }
 
-  free(costs);
   ZopfliCleanLZ77Store(&currentstore);
 }
 
@@ -136,17 +131,11 @@ void ZopfliLZ77OptimalFixed(ZopfliBlockState *s,
                             ZopfliLZ77Store* store)
 {
   /* Dist to get to here with smallest cost. */
-  size_t blocksize = inend - instart;
-  float* costs = (float*)malloc(sizeof(float) * (blocksize + 1));
-
-  if (!costs) exit(-1); /* Allocation failed. */
 
   s->blockstart = instart;
   s->blockend = inend;
 
   /* Shortest path for fixed tree This one should give the shortest possible
   result for fixed tree, no repeated runs are needed since the tree is known. */
-  LZ77OptimalRun(s, in, instart, inend, GetCostFixed, 0, store, costs);
-
-  free(costs);
+  LZ77OptimalRun(s, in, instart, inend, GetCostFixed, 0, store);
 }

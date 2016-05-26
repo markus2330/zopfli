@@ -331,10 +331,8 @@ pub fn get_cost_model_min_cost(costmodel: fn(c_uint, c_uint, *const c_void) -> c
 /// length_array: output array of size (inend - instart) which will receive the best
 ///     length to reach this byte from a previous byte.
 /// returns the cost that was, according to the costmodel, needed to get to the end.
-
-// TODO: upstream is now reusing an already allocated hash; we're ignoring it
 #[inline(never)]
-pub fn get_best_lengths(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void, _costs: *mut c_float) -> (c_double, Vec<c_ushort>) {
+pub fn get_best_lengths(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void) -> (c_double, Vec<c_ushort>) {
     let s = unsafe {
         assert!(!s_ptr.is_null());
         &mut *s_ptr
@@ -550,9 +548,8 @@ pub fn trace_backwards(size: size_t, length_array: Vec<c_ushort>) -> Vec<c_ushor
 ///     This is not the actual cost.
 #[no_mangle]
 #[allow(non_snake_case)]
-pub extern fn LZ77OptimalRun(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void, store_ptr: *mut ZopfliLZ77Store, costs: *mut c_float) {
-
-    let (cost, length_array) = get_best_lengths(s_ptr, in_data, instart, inend, costmodel, costcontext, costs);
+pub extern fn LZ77OptimalRun(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void, store_ptr: *mut ZopfliLZ77Store) {
+    let (cost, length_array) = get_best_lengths(s_ptr, in_data, instart, inend, costmodel, costcontext);
     let path = trace_backwards(inend - instart, length_array);
     follow_path(s_ptr, in_data, instart, inend, path, store_ptr);
     assert!(cost < ZOPFLI_LARGE_FLOAT);
