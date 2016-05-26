@@ -125,17 +125,4 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
   ZopfliCleanLZ77Store(&currentstore);
 }
 
-void ZopfliLZ77OptimalFixed(ZopfliBlockState *s,
-                            const unsigned char* in,
-                            size_t instart, size_t inend,
-                            ZopfliLZ77Store* store)
-{
-  /* Dist to get to here with smallest cost. */
-
-  s->blockstart = instart;
-  s->blockend = inend;
-
-  /* Shortest path for fixed tree This one should give the shortest possible
-  result for fixed tree, no repeated runs are needed since the tree is known. */
-  LZ77OptimalRun(s, in, instart, inend, GetCostFixed, 0, store);
-}
+extern void ZopfliLZ77OptimalFixed(ZopfliBlockState *s, const unsigned char* in, size_t instart, size_t inend, ZopfliLZ77Store* store);

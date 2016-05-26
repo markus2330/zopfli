@@ -11,9 +11,8 @@ const K_INV_LOG2: c_double = 1.4426950408889;  // 1.0 / log(2.0)
 
 /// Cost model which should exactly match fixed tree.
 /// type: CostModelFun
-#[no_mangle]
 #[allow(non_snake_case)]
-pub extern fn GetCostFixed(litlen: c_uint, dist: c_uint, _unused: c_void) -> c_double {
+pub fn GetCostFixed(litlen: c_uint, dist: c_uint, _unused: *const c_void) -> c_double {
     let result = if dist == 0 {
         if litlen <= 143 {
             8
@@ -553,4 +552,21 @@ pub extern fn LZ77OptimalRun(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar
     let path = trace_backwards(inend - instart, length_array);
     follow_path(s_ptr, in_data, instart, inend, path, store_ptr);
     assert!(cost < ZOPFLI_LARGE_FLOAT);
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern fn ZopfliLZ77OptimalFixed(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, store_ptr: *mut ZopfliLZ77Store) {
+    /* Dist to get to here with smallest cost. */
+    let s = unsafe {
+        assert!(!s_ptr.is_null());
+        &mut *s_ptr
+    };
+
+    s.blockstart = instart;
+    s.blockend = inend;
+
+    /* Shortest path for fixed tree This one should give the shortest possible
+    result for fixed tree, no repeated runs are needed since the tree is known. */
+    LZ77OptimalRun(s_ptr, in_data, instart, inend, GetCostFixed, ptr::null(), store_ptr);
 }
