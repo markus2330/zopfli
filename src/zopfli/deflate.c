@@ -96,6 +96,9 @@ static size_t EncodeTreeNoOutput(const unsigned* ll_lengths,
   };
   size_t result_size = 0;
 
+  fprintf(stdout, "use_16 = %d, use_17 = %d, use_18 = %d\n", use_16, use_17, use_18);
+
+
   for(i = 0; i < 19; i++) clcounts[i] = 0;
 
   /* Trim zeros. */
@@ -109,6 +112,8 @@ static size_t EncodeTreeNoOutput(const unsigned* ll_lengths,
     /* This is an encoding of a huffman tree, so now the length is a symbol */
     unsigned char symbol = i < hlit2 ? ll_lengths[i] : d_lengths[i - hlit2];
     unsigned count = 1;
+    fprintf(stdout, "symbol = %d, i = %d\n", symbol, i);
+
     if(use_16 || (symbol == 0 && (use_17 || use_18))) {
       for (j = i + 1; j < lld_total && symbol ==
           (j < hlit2 ? ll_lengths[j] : d_lengths[j - hlit2]); j++) {
@@ -116,6 +121,7 @@ static size_t EncodeTreeNoOutput(const unsigned* ll_lengths,
       }
     }
     i += count - 1;
+    fprintf(stdout, "i = %d\n", i);
 
     /* Repetitions of zeroes */
     if (symbol == 0 && count >= 3) {
