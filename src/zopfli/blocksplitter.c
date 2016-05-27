@@ -318,16 +318,3 @@ void ZopfliBlockSplit(const ZopfliOptions* options,
   ZopfliCleanBlockState(&s);
   ZopfliCleanLZ77Store(&store);
 }
-
-// Writes to splitpoints, npoints
-void ZopfliBlockSplitSimple(const unsigned char* in,
-                            size_t instart, size_t inend,
-                            size_t blocksize,
-                            size_t** splitpoints, size_t* npoints) {
-  size_t i = instart;
-  while (i < inend) {
-    ZOPFLI_APPEND_DATA(i, splitpoints, npoints);
-    i += blocksize;
-  }
-  (void)in;
-}
