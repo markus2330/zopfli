@@ -118,10 +118,12 @@ static size_t EncodeTreeNoOutput(const unsigned* ll_lengths,
     if(use_16 || (symbol == 0 && (use_17 || use_18))) {
         j = i + 1;
         symbol_calc = j < hlit2 ? ll_lengths[j] : d_lengths[j - hlit2];
+        fprintf(stdout, "j = %d, symbol_calc = %d, lld_total = %d\n", j, symbol_calc, lld_total);
         while (j < lld_total && symbol == symbol_calc) {
             count++;
             j++;
             symbol_calc = j < hlit2 ? ll_lengths[j] : d_lengths[j - hlit2];
+            fprintf(stdout, "symbol_calc = %d\n", symbol_calc);
         }
     }
     fprintf(stdout, "count = %d\n", count);
