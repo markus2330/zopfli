@@ -111,15 +111,20 @@ static size_t EncodeTreeNoOutput(const unsigned* ll_lengths,
   for (i = 0; i < lld_total; i++) {
     /* This is an encoding of a huffman tree, so now the length is a symbol */
     unsigned char symbol = i < hlit2 ? ll_lengths[i] : d_lengths[i - hlit2];
+    unsigned char symbol_calc;
     unsigned count = 1;
     fprintf(stdout, "symbol = %d, i = %d\n", symbol, i);
 
     if(use_16 || (symbol == 0 && (use_17 || use_18))) {
-      for (j = i + 1; j < lld_total && symbol ==
-          (j < hlit2 ? ll_lengths[j] : d_lengths[j - hlit2]); j++) {
-        count++;
-      }
+        j = i + 1;
+        symbol_calc = j < hlit2 ? ll_lengths[j] : d_lengths[j - hlit2];
+        while (j < lld_total && symbol == symbol_calc) {
+            count++;
+            j++;
+            symbol_calc = j < hlit2 ? ll_lengths[j] : d_lengths[j - hlit2];
+        }
     }
+    fprintf(stdout, "count = %d\n", count);
     i += count - 1;
     fprintf(stdout, "i = %d\n", i);
 
