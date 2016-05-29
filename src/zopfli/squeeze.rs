@@ -543,10 +543,21 @@ pub extern fn ZopfliLZ77OptimalFixed(s_ptr: *mut ZopfliBlockState, in_data: *mut
         &mut *s_ptr
     };
 
-    s.blockstart = instart;
-    s.blockend = inend;
+    let store = unsafe {
+        assert!(!store_ptr.is_null());
+        &mut *store_ptr
+    };
+    let rust_store = lz77_store_from_c(store_ptr);
 
     /* Shortest path for fixed tree This one should give the shortest possible
     result for fixed tree, no repeated runs are needed since the tree is known. */
-    LZ77OptimalRun(s_ptr, in_data, instart, inend, GetCostFixed, ptr::null(), store_ptr);
+    lz77_optimal_fixed(s, in_data, instart, inend, unsafe { &mut *rust_store });
+
+    lz77_store_result(rust_store, store);
+}
+
+pub fn lz77_optimal_fixed(s: &mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, store: &mut Lz77Store) {
+    s.blockstart = instart;
+    s.blockend = inend;
+    lz77_optimal_run(s, in_data, instart, inend, GetCostFixed, ptr::null(), store);
 }
