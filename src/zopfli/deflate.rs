@@ -6,28 +6,32 @@ use katajainen::length_limited_code_lengths;
 use lz77::{ZopfliLZ77Store, lz77_store_from_c, get_histogram};
 use symbols::{ZopfliGetLengthSymbol, ZopfliGetDistSymbol, ZopfliGetLengthSymbolExtraBits, ZopfliGetDistSymbolExtraBits};
 use tree::lengths_to_symbols;
-use util::{ZOPFLI_NUM_LL};
+use util::{ZOPFLI_NUM_LL, ZOPFLI_NUM_D};
 
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern fn GetFixedTree(ll_lengths: *mut c_uint, d_lengths: *mut c_uint) {
+    let (ll, d) = fixed_tree();
     unsafe {
-        for i in 0..144 {
-            *ll_lengths.offset(i) = 8;
+        for i in 0..ZOPFLI_NUM_LL {
+            *ll_lengths.offset(i as isize) = ll[i];
         }
-        for i in 144..256 {
-            *ll_lengths.offset(i) = 9;
-        }
-        for i in 256..280 {
-            *ll_lengths.offset(i) = 7;
-        }
-        for i in 280..288 {
-            *ll_lengths.offset(i) = 8;
-        }
-        for i in 0..32 {
-            *d_lengths.offset(i) = 5;
+        for i in 0..ZOPFLI_NUM_D {
+            *d_lengths.offset(i as isize) = d[i];
         }
     }
+}
+
+pub fn fixed_tree() -> ([c_uint; ZOPFLI_NUM_LL], [c_uint; ZOPFLI_NUM_D]) {
+    let mut ll = [8; ZOPFLI_NUM_LL];
+    for i in 144..256 {
+        ll[i] = 9;
+    }
+    for i in 256..280 {
+        ll[i] = 7;
+    }
+    let d = [5; ZOPFLI_NUM_D];
+    (ll, d)
 }
 
 /// Changes the population counts in a way that the consequent Huffman tree
