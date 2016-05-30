@@ -1,9 +1,7 @@
 use libc::{c_int};
 
 /// Gets the amount of extra bits for the given dist, cfr. the DEFLATE spec.
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn ZopfliGetDistExtraBits(dist: c_int) -> c_int {
+pub fn get_dist_extra_bits(dist: c_int) -> c_int {
     if dist < 5 {
         0
     } else {
@@ -26,9 +24,7 @@ pub extern fn ZopfliGetDistExtraBits(dist: c_int) -> c_int {
 }
 
 /// Gets value of the extra bits for the given dist, cfr. the DEFLATE spec.
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn ZopfliGetDistExtraBitsValue(dist: c_int) -> c_int {
+pub fn get_dist_extra_bits_value(dist: c_int) -> c_int {
     if dist < 5 {
         0
     } else {
@@ -50,9 +46,7 @@ pub extern fn ZopfliGetDistExtraBitsValue(dist: c_int) -> c_int {
     }
 }
 
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn ZopfliGetDistSymbol(dist: c_int) -> c_int {
+pub fn get_dist_symbol(dist: c_int) -> c_int {
     match dist {
         0...4 => dist - 1,
         5...6 => 4,
@@ -103,9 +97,7 @@ const LENGTH_EXTRA_BITS: [c_int; 259] = [
     5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 0
 ];
 
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn ZopfliGetLengthExtraBits(l: c_int) -> c_int {
+pub fn get_length_extra_bits(l: c_int) -> c_int {
     LENGTH_EXTRA_BITS[l as usize]
 }
 
@@ -125,9 +117,7 @@ const LENGTH_EXTRA_BITS_VALUE: [c_int; 259] = [
 ];
 
 /// Gets value of the extra bits for the given length, cfr. the DEFLATE spec.
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn ZopfliGetLengthExtraBitsValue(l: c_int) -> c_int {
+pub fn get_length_extra_bits_value(l: c_int) -> c_int {
     LENGTH_EXTRA_BITS_VALUE[l as usize]
 }
 
@@ -168,9 +158,7 @@ const LENGTH_SYMBOL_TABLE: [c_int; 259] = [
 ];
 
 /// Returns symbol in range [257-285] (inclusive).
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn ZopfliGetLengthSymbol(length: c_int) -> c_int {
+pub fn get_length_symbol(length: c_int) -> c_int {
     LENGTH_SYMBOL_TABLE[length as usize]
 }
 
@@ -180,9 +168,7 @@ const LENGTH_SYMBOL_EXTRA_BITS_TABLE: [c_int; 29] = [
 ];
 
 /// Gets the amount of extra bits for the given length symbol.
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn ZopfliGetLengthSymbolExtraBits(s: c_int) -> c_int {
+pub fn get_length_symbol_extra_bits(s: c_int) -> c_int {
     LENGTH_SYMBOL_EXTRA_BITS_TABLE[s as usize - 257]
 }
 
@@ -192,8 +178,6 @@ const DIST_SYMBOL_EXTRA_BITS_TABLE: [c_int; 30] = [
 ];
 
 /// Gets the amount of extra bits for the given distance symbol.
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn ZopfliGetDistSymbolExtraBits(s: c_int) -> c_int {
+pub fn get_dist_symbol_extra_bits(s: c_int) -> c_int {
     DIST_SYMBOL_EXTRA_BITS_TABLE[s as usize]
 }
