@@ -1,3 +1,12 @@
+//! The squeeze functions do enhanced LZ77 compression by optimal parsing with a
+//! cost model, rather than greedily choosing the longest length or using a single
+//! step of lazy matching like regular implementations.
+//!
+//! Since the cost model is based on the Huffman tree that can only be calculated
+//! after the LZ77 data is generated, there is a chicken and egg problem, and
+//! multiple runs are done with updated cost models to converge to a better
+//! solution.
+
 use std::{mem, slice, ptr, cmp};
 
 use libc::{c_void, c_uint, c_double, c_int, size_t, c_uchar, c_ushort, malloc, c_float};
@@ -6,7 +15,7 @@ use deflate::calculate_block_size;
 use hash::ZopfliHash;
 use symbols::{get_dist_extra_bits, get_dist_symbol, get_length_extra_bits, get_length_symbol};
 use util::{ZOPFLI_NUM_LL, ZOPFLI_NUM_D, ZOPFLI_LARGE_FLOAT, ZOPFLI_WINDOW_SIZE, ZOPFLI_WINDOW_MASK, ZOPFLI_MAX_MATCH};
-use lz77::{ZopfliLZ77Store, Lz77Store, ZopfliBlockState, find_longest_match, lz77_store_from_c, lz77_store_result};
+use lz77::{Lz77Store, ZopfliBlockState, find_longest_match};
 
 const K_INV_LOG2: c_double = 1.4426950408889;  // 1.0 / log(2.0)
 
@@ -75,12 +84,6 @@ impl RanState {
         (self.m_z << 16).wrapping_add(self.m_w) // 32-bit result.
     }
 }
-
-#[no_mangle]
-pub extern fn ran_state_new() -> *mut RanState {
-    Box::into_raw(Box::new(RanState::new()))
-}
-
 
 #[derive(Copy)]
 pub struct SymbolStats {
@@ -193,35 +196,6 @@ impl SymbolStats {
     }
 }
 
-#[no_mangle]
-pub extern fn symbol_stats_new() -> *mut SymbolStats {
-    Box::into_raw(Box::new(SymbolStats::new()))
-}
-
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn ClearStatFreqs(stats_ptr: *mut SymbolStats) {
-    let stats = unsafe {
-        assert!(!stats_ptr.is_null());
-        &mut *stats_ptr
-    };
-    stats.clear_freqs();
-}
-
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn CopyStats(source_ptr: *mut SymbolStats, dest_ptr: *mut SymbolStats) {
-    let source = unsafe {
-        assert!(!source_ptr.is_null());
-        &mut *source_ptr
-    };
-    let dest = unsafe {
-        assert!(!dest_ptr.is_null());
-        &mut *dest_ptr
-    };
-    *dest = *source;
-}
-
 pub fn add_weighed_stat_freqs(stats1: &SymbolStats, w1: c_double, stats2: &SymbolStats, w2: c_double) -> SymbolStats {
     let mut result = SymbolStats::new();
 
@@ -233,74 +207,6 @@ pub fn add_weighed_stat_freqs(stats1: &SymbolStats, w1: c_double, stats2: &Symbo
     }
     result.litlens[256] = 1; // End symbol.
     result
-}
-
-/// Adds the bit lengths.
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn AddWeighedStatFreqs(stats1_ptr: *mut SymbolStats, w1: c_double, stats2_ptr: *mut SymbolStats, w2: c_double, result_ptr: *mut SymbolStats) {
-    let stats1 = unsafe {
-        assert!(!stats1_ptr.is_null());
-        &mut *stats1_ptr
-    };
-    let stats2 = unsafe {
-        assert!(!stats2_ptr.is_null());
-        &mut *stats2_ptr
-    };
-    let result = unsafe {
-        assert!(!result_ptr.is_null());
-        &mut *result_ptr
-    };
-
-    let rust_result = add_weighed_stat_freqs(stats1, w1, stats2, w2);
-
-
-    for i in 0..ZOPFLI_NUM_LL {
-        result.litlens[i] = rust_result.litlens[i];
-    }
-    for i in 0..ZOPFLI_NUM_D {
-        result.dists[i] = rust_result.dists[i];
-    }
-    result.litlens[256] = rust_result.litlens[256]; // End symbol.
-}
-
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn RandomizeStatFreqs(state_ptr: *mut RanState, stats_ptr: *mut SymbolStats) {
-    let stats = unsafe {
-        assert!(!stats_ptr.is_null());
-        &mut *stats_ptr
-    };
-    let state = unsafe {
-        assert!(!state_ptr.is_null());
-        &mut *state_ptr
-    };
-
-    stats.randomize_stat_freqs(state);
-}
-
-/// Calculates the entropy of the statistics
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn CalculateStatistics(stats_ptr: *mut SymbolStats) {
-    let stats = unsafe {
-        assert!(!stats_ptr.is_null());
-        &mut *stats_ptr
-    };
-
-    stats.calculate_entropy();
-}
-
-/// Appends the symbol statistics from the store.
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn GetStatistics(store_ptr: *const ZopfliLZ77Store, stats_ptr: *mut SymbolStats) {
-    let store: Lz77Store = store_ptr.into();
-    let stats = unsafe {
-        assert!(!stats_ptr.is_null());
-        &mut *stats_ptr
-    };
-    stats.get_statistics(&store);
 }
 
 /// Finds the minimum possible cost this cost model can return for valid length and
@@ -445,26 +351,6 @@ pub fn get_best_lengths(s: &mut ZopfliBlockState, in_data: *const c_uchar, insta
     (costs[blocksize] as c_double, length_array)
 }
 
-// TODO: upstream is now reusing an already allocated hash; we're ignoring it
-#[inline(never)]
-pub fn follow_path(s_ptr: *mut ZopfliBlockState, in_data: *const c_uchar, instart: size_t, inend: size_t, path: Vec<c_ushort>, store_ptr: *mut ZopfliLZ77Store) {
-    let mut s = unsafe {
-        assert!(!s_ptr.is_null());
-        &mut *s_ptr
-    };
-    let store = unsafe {
-        assert!(!store_ptr.is_null());
-        &mut *store_ptr
-    };
-    let rust_store = lz77_store_from_c(store_ptr);
-
-    unsafe {
-        (&mut *rust_store).follow_path(in_data, instart, inend, path, &mut s);
-    }
-
-    lz77_store_result(rust_store, store);
-}
-
 /// Calculates the optimal path of lz77 lengths to use, from the calculated
 /// length_array. The length_array must contain the optimal length to reach that
 /// byte. The path will be filled with the lengths to use, so its data size will be
@@ -499,7 +385,7 @@ pub fn trace_backwards(size: size_t, length_array: Vec<c_ushort>) -> Vec<c_ushor
     path
 }
 
-/// Does a single run for ZopfliLZ77Optimal. For good compression, repeated runs
+/// Does a single run for lz77_optimal. For good compression, repeated runs
 /// with updated statistics should be performed.
 /// s: the block state
 /// in: the input data array
@@ -511,22 +397,6 @@ pub fn trace_backwards(size: size_t, length_array: Vec<c_ushort>) -> Vec<c_ushor
 /// store: place to output the LZ77 data
 /// returns the cost that was, according to the costmodel, needed to get to the end.
 ///     This is not the actual cost.
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn LZ77OptimalRun(s_ptr: *mut ZopfliBlockState, in_data: *mut c_uchar, instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void, store_ptr: *mut ZopfliLZ77Store) {
-    let s = unsafe {
-        assert!(!s_ptr.is_null());
-        &mut *s_ptr
-    };
-    let store = unsafe {
-        assert!(!store_ptr.is_null());
-        &mut *store_ptr
-    };
-    let rust_store = lz77_store_from_c(store_ptr);
-    lz77_optimal_run(s, in_data, instart, inend, costmodel, costcontext, unsafe { &mut *rust_store });
-    lz77_store_result(rust_store, store);
-}
-
 pub fn lz77_optimal_run(s: &mut ZopfliBlockState, in_data: *const c_uchar, instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void, store: &mut Lz77Store) {
     let (cost, length_array) = get_best_lengths(s, in_data, instart, inend, costmodel, costcontext);
     let path = trace_backwards(inend - instart, length_array);
@@ -535,7 +405,7 @@ pub fn lz77_optimal_run(s: &mut ZopfliBlockState, in_data: *const c_uchar, insta
 }
 
 
-/// Does the same as ZopfliLZ77Optimal, but optimized for the fixed tree of the
+/// Does the same as lz77_optimal, but optimized for the fixed tree of the
 /// deflate standard.
 /// The fixed tree never gives the best compression. But this gives the best
 /// possible LZ77 encoding possible with the fixed tree.
@@ -549,9 +419,10 @@ pub fn lz77_optimal_fixed(s: &mut ZopfliBlockState, in_data: *const c_uchar, ins
     lz77_optimal_run(s, in_data, instart, inend, GetCostFixed, ptr::null(), store);
 }
 
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern fn ZopfliLZ77Optimal(s: &mut ZopfliBlockState, in_data: *const c_uchar, instart: size_t, inend: size_t, numiterations: c_int) -> Lz77Store {
+/// Calculates lit/len and dist pairs for given data.
+/// If instart is larger than 0, it uses values before instart as starting
+/// dictionary.
+pub fn lz77_optimal(s: &mut ZopfliBlockState, in_data: *const c_uchar, instart: size_t, inend: size_t, numiterations: c_int) -> Lz77Store {
 
     /* Dist to get to here with smallest cost. */
     let mut currentstore = Lz77Store::new();
