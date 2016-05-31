@@ -564,15 +564,7 @@ pub fn lz77_optimal_fixed(s: &mut ZopfliBlockState, in_data: *const c_uchar, ins
 
 #[no_mangle]
 #[allow(non_snake_case)]
-pub extern fn ZopfliLZ77Optimal(s_ptr: *mut ZopfliBlockState, in_data: *const c_uchar, instart: size_t, inend: size_t, numiterations: c_int, store_ptr: *mut ZopfliLZ77Store) {
-    let s = unsafe {
-        assert!(!s_ptr.is_null());
-        &mut *s_ptr
-    };
-    let store = unsafe {
-        assert!(!store_ptr.is_null());
-        &mut *store_ptr
-    };
+pub extern fn ZopfliLZ77Optimal(s: &mut ZopfliBlockState, in_data: *const c_uchar, instart: size_t, inend: size_t, numiterations: c_int) -> Lz77Store {
 
     /* Dist to get to here with smallest cost. */
     let mut currentstore = Lz77Store::new();
@@ -629,7 +621,5 @@ pub extern fn ZopfliLZ77Optimal(s_ptr: *mut ZopfliBlockState, in_data: *const c_
         }
         lastcost = cost;
     }
-    lz77_store_result(&mut outputstore, store);
-    mem::forget(currentstore);
-    mem::forget(outputstore);
+    outputstore
 }
