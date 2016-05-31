@@ -851,6 +851,6 @@ pub extern fn ZopfliCopyLZ77Store(store_ptr: *mut ZopfliLZ77Store, target_ptr: *
         &mut *target_ptr
     };
 
-    let rust_target = lz77_store_from_c(store_ptr);
-    lz77_store_result(rust_target, target);
+    let rust_store = lz77_store_from_c(store_ptr);
+    lz77_store_result(rust_store, target);
 }
