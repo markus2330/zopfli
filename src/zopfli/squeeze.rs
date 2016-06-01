@@ -452,7 +452,7 @@ pub fn lz77_optimal(s: &mut ZopfliBlockState, in_data: *const c_uchar, instart: 
         lz77_optimal_run(s, in_data, instart, inend, GetCostStat, stats_ptr as *const c_void, &mut currentstore);
         let cost = calculate_block_size(&currentstore, 0, currentstore.size(), 2);
 
-        if unsafe { (*s.options).verbose_more } != 0 || (unsafe { (*s.options).verbose } != 0 && cost < bestcost) {
+        if s.options.verbose_more != 0 || (s.options.verbose != 0 && cost < bestcost) {
               println!("Iteration {}: {} bit", i, cost);
         }
         if cost < bestcost {
