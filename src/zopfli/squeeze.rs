@@ -7,9 +7,9 @@
 //! multiple runs are done with updated cost models to converge to a better
 //! solution.
 
-use std::{mem, slice, ptr, cmp};
+use std::{mem, ptr, cmp};
 
-use libc::{c_void, c_uint, c_double, c_int, size_t, c_uchar, c_ushort, malloc, c_float};
+use libc::{c_void, c_uint, c_double, c_int, size_t, c_ushort, malloc, c_float};
 
 use deflate::calculate_block_size;
 use hash::ZopfliHash;
@@ -257,7 +257,7 @@ pub fn get_cost_model_min_cost(costmodel: fn(c_uint, c_uint, *const c_void) -> c
 ///     length to reach this byte from a previous byte.
 /// returns the cost that was, according to the costmodel, needed to get to the end.
 #[inline(never)]
-pub fn get_best_lengths(s: &mut ZopfliBlockState, in_data: *const c_uchar, instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void) -> (c_double, Vec<c_ushort>) {
+pub fn get_best_lengths(s: &mut ZopfliBlockState, in_data: &[u8], instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void) -> (c_double, Vec<c_ushort>) {
     // Best cost to get here so far.
     let blocksize = inend - instart;
     let mut length_array = vec![0; blocksize + 1];
@@ -280,7 +280,7 @@ pub fn get_best_lengths(s: &mut ZopfliBlockState, in_data: *const c_uchar, insta
     costs[0] = 0.0;  // Because it's the start.
 
     let mut h = ZopfliHash::new(ZOPFLI_WINDOW_SIZE);
-    let arr = unsafe { slice::from_raw_parts(in_data, inend) };
+    let arr = &in_data[..inend];
     h.warmup(arr, windowstart, inend);
     for i in windowstart..instart {
         h.update(arr, i);
@@ -397,7 +397,7 @@ pub fn trace_backwards(size: size_t, length_array: Vec<c_ushort>) -> Vec<c_ushor
 /// store: place to output the LZ77 data
 /// returns the cost that was, according to the costmodel, needed to get to the end.
 ///     This is not the actual cost.
-pub fn lz77_optimal_run(s: &mut ZopfliBlockState, in_data: *const c_uchar, instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void, store: &mut Lz77Store) {
+pub fn lz77_optimal_run(s: &mut ZopfliBlockState, in_data: &[u8], instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, *const c_void) -> c_double, costcontext: *const c_void, store: &mut Lz77Store) {
     let (cost, length_array) = get_best_lengths(s, in_data, instart, inend, costmodel, costcontext);
     let path = trace_backwards(inend - instart, length_array);
     store.follow_path(in_data, instart, inend, path, s);
@@ -413,7 +413,7 @@ pub fn lz77_optimal_run(s: &mut ZopfliBlockState, in_data: *const c_uchar, insta
 /// using with a fixed tree.
 /// If instart is larger than 0, it uses values before instart as starting
 /// dictionary.
-pub fn lz77_optimal_fixed(s: &mut ZopfliBlockState, in_data: *const c_uchar, instart: size_t, inend: size_t, store: &mut Lz77Store) {
+pub fn lz77_optimal_fixed(s: &mut ZopfliBlockState, in_data: &[u8], instart: size_t, inend: size_t, store: &mut Lz77Store) {
     s.blockstart = instart;
     s.blockend = inend;
     lz77_optimal_run(s, in_data, instart, inend, GetCostFixed, ptr::null(), store);
@@ -422,7 +422,7 @@ pub fn lz77_optimal_fixed(s: &mut ZopfliBlockState, in_data: *const c_uchar, ins
 /// Calculates lit/len and dist pairs for given data.
 /// If instart is larger than 0, it uses values before instart as starting
 /// dictionary.
-pub fn lz77_optimal(s: &mut ZopfliBlockState, in_data: *const c_uchar, instart: size_t, inend: size_t, numiterations: c_int) -> Lz77Store {
+pub fn lz77_optimal(s: &mut ZopfliBlockState, in_data: &[u8], instart: size_t, inend: size_t, numiterations: c_int) -> Lz77Store {
 
     /* Dist to get to here with smallest cost. */
     let mut currentstore = Lz77Store::new();
