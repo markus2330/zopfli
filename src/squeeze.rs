@@ -255,9 +255,12 @@ pub fn get_cost_model_min_cost(costmodel: fn(c_uint, c_uint, Option<SymbolStats>
 /// returns the cost that was, according to the costmodel, needed to get to the end.
 #[inline(never)]
 pub fn get_best_lengths(s: &mut ZopfliBlockState, in_data: &[u8], instart: size_t, inend: size_t, costmodel: fn (c_uint, c_uint, Option<SymbolStats>) -> c_double, costcontext: Option<SymbolStats>) -> (c_double, Vec<c_ushort>) {
-    // Best cost to get here so far.
     let blocksize = inend - instart;
     let mut length_array = vec![0; blocksize + 1];
+    if instart == inend {
+        return (0.0, length_array);
+    }
+    // Best cost to get here so far.
     let mut leng;
     let mut longest_match;
     let sublen = unsafe { malloc(mem::size_of::<c_ushort>() * 259) as *mut c_ushort };
@@ -268,10 +271,6 @@ pub fn get_best_lengths(s: &mut ZopfliBlockState, in_data: &[u8], instart: size_
     };
 
     let mincost = get_cost_model_min_cost(costmodel, costcontext);
-
-    if instart == inend {
-        return (0.0, length_array);
-    }
 
     let mut costs: Vec<c_float> = vec![ZOPFLI_LARGE_FLOAT as c_float; blocksize + 1];
     costs[0] = 0.0;  // Because it's the start.
