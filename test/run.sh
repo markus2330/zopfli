@@ -1,3 +1,3 @@
 #!/bin/bash
-./zopfli test/data/*
+./target/release/zopfli test/data/*
 mv test/data/*.gz test/results/
