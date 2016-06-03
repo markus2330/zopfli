@@ -1,4 +1,5 @@
 #![deny(trivial_casts, trivial_numeric_casts)]
+#![inline(never)]
 
 extern crate libc;
 extern crate crc;

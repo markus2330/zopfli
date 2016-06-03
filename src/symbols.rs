@@ -97,8 +97,8 @@ const LENGTH_EXTRA_BITS: [c_int; 259] = [
     5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 0
 ];
 
-pub fn get_length_extra_bits(l: c_int) -> c_int {
-    LENGTH_EXTRA_BITS[l as usize]
+pub fn get_length_extra_bits(l: usize) -> c_int {
+    LENGTH_EXTRA_BITS[l]
 }
 
 const LENGTH_EXTRA_BITS_VALUE: [c_int; 259] = [
@@ -158,8 +158,8 @@ const LENGTH_SYMBOL_TABLE: [c_int; 259] = [
 ];
 
 /// Returns symbol in range [257-285] (inclusive).
-pub fn get_length_symbol(length: c_int) -> c_int {
-    LENGTH_SYMBOL_TABLE[length as usize]
+pub fn get_length_symbol(length: usize) -> c_int {
+    LENGTH_SYMBOL_TABLE[length]
 }
 
 const LENGTH_SYMBOL_EXTRA_BITS_TABLE: [c_int; 29] = [
