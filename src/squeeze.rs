@@ -11,7 +11,7 @@ use std::{mem, cmp};
 
 use libc::{c_uint, c_double, c_int, size_t, c_ushort, malloc, c_float};
 
-use deflate::calculate_block_size;
+use deflate::{calculate_block_size, BlockType};
 use hash::ZopfliHash;
 use symbols::{get_dist_extra_bits, get_dist_symbol, get_length_extra_bits, get_length_symbol};
 use util::{ZOPFLI_NUM_LL, ZOPFLI_NUM_D, ZOPFLI_LARGE_FLOAT, ZOPFLI_WINDOW_SIZE, ZOPFLI_WINDOW_MASK, ZOPFLI_MAX_MATCH};
@@ -446,7 +446,7 @@ pub fn lz77_optimal(s: &mut ZopfliBlockState, in_data: &[u8], instart: size_t, i
     for i in 0..numiterations {
         currentstore.reset();
         lz77_optimal_run(s, in_data, instart, inend, GetCostStat, Some(stats), &mut currentstore);
-        let cost = calculate_block_size(&currentstore, 0, currentstore.size(), 2);
+        let cost = calculate_block_size(&currentstore, 0, currentstore.size(), BlockType::Dynamic);
 
         if s.options.verbose_more != 0 || (s.options.verbose != 0 && cost < bestcost) {
               println!("Iteration {}: {} bit", i, cost);
